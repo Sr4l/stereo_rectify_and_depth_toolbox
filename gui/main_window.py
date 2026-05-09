@@ -238,8 +238,8 @@ class StereoCalibrationGUI:
         self.bm_scales = {}
         
         for i, (key, label, from_val, to_val, step, default) in enumerate(controls):
-            row = i // 3
-            col = (i % 3) * 2
+            row = i % 3
+            col = (i // 3) * 2
             
             frame = ttk.Frame(parent)
             frame.grid(row=row, column=col, sticky='w', padx=3, pady=2)
@@ -265,7 +265,7 @@ class StereoCalibrationGUI:
             value_label.pack(side=tk.LEFT)
         
         btn_frame = ttk.Frame(parent)
-        btn_frame.grid(row=2, column=0, columnspan=6, sticky='ew', padx=3, pady=5)
+        btn_frame.grid(row=3, column=0, columnspan=6, sticky='ew', padx=3, pady=5)
         
         ttk.Button(
             btn_frame,
