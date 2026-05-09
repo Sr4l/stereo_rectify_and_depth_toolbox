@@ -57,8 +57,9 @@ class StereoCalibrationGUI:
         main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         main_container.grid_rowconfigure(0, weight=1)
-        main_container.grid_columnconfigure(1, weight=3)
-        main_container.grid_columnconfigure(2, weight=3)
+        main_container.grid_columnconfigure(0, weight=3)
+        main_container.grid_columnconfigure(1, weight=5)
+        main_container.grid_columnconfigure(2, weight=5)
         
         self._create_left_panel(main_container)
         self._create_center_panel(main_container)
@@ -68,9 +69,8 @@ class StereoCalibrationGUI:
     
     def _create_left_panel(self, parent):
         """Create left sidebar with parameter controls."""
-        left_frame = ttk.Frame(parent, width=320)
-        left_frame.grid(row=0, column=0, sticky='ns', padx=(0, 5))
-        left_frame.grid_propagate(False)
+        left_frame = ttk.Frame(parent)
+        left_frame.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
         
         canvas = tk.Canvas(left_frame, bg='#1e1e1e', highlightthickness=0)
         scrollbar = ttk.Scrollbar(left_frame, orient="vertical", command=canvas.yview)
@@ -272,7 +272,7 @@ class StereoCalibrationGUI:
         """Create StereoBM parameter controls."""
         controls = [
             ('numDisparities', 'Num Disp:', 16, 256, 16, 16),
-            ('blockSize', 'Block:', 5, 25, 2, 9),
+            ('blockSize', 'Block:', 5, 255, 2, 9),
             ('minDisparity', 'Min Disp:', -100, 100, 1, 0),
             ('uniquenessRatio', 'Unique:', 1, 100, 1, 10),
             ('speckleWindowSize', 'Speckle W:', 0, 200, 1, 100),
@@ -287,10 +287,10 @@ class StereoCalibrationGUI:
             col = (i % 2) * 2
             
             frame = ttk.Frame(parent)
-            frame.grid(row=row, column=col, sticky='ew', padx=5, pady=3)
+            frame.grid(row=row, column=col, sticky='ew', padx=5, pady=8)
             frame.columnconfigure(1, weight=1)
             
-            ttk.Label(frame, text=label, width=12).grid(row=0, column=0, sticky='w')
+            ttk.Label(frame, text=label, width=12, font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky='w')
             
             var = tk.IntVar(value=default)
             self.bm_vars[key] = var
@@ -303,10 +303,10 @@ class StereoCalibrationGUI:
                 variable=var,
                 command=lambda v, k=key: self._on_bm_param_change(k)
             )
-            scale.grid(row=0, column=1, sticky='ew', padx=5)
+            scale.grid(row=1, column=0, columnspan=3, sticky='ew', padx=5, pady=(0, 5))
             self.bm_scales[key] = scale
             
-            value_label = ttk.Label(frame, textvariable=var, width=5)
+            value_label = ttk.Label(frame, textvariable=var, width=6, font=('Arial', 11, 'bold'))
             value_label.grid(row=0, column=2, sticky='e')
     
     def _create_sgbm_controls(self, parent):
@@ -331,10 +331,10 @@ class StereoCalibrationGUI:
             col = (i % 2) * 2
             
             frame = ttk.Frame(parent)
-            frame.grid(row=row, column=col, sticky='ew', padx=5, pady=3)
+            frame.grid(row=row, column=col, sticky='ew', padx=5, pady=8)
             frame.columnconfigure(1, weight=1)
             
-            ttk.Label(frame, text=label, width=12).grid(row=0, column=0, sticky='w')
+            ttk.Label(frame, text=label, width=12, font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky='w')
             
             var = tk.IntVar(value=default)
             self.sgbm_vars[key] = var
@@ -347,10 +347,10 @@ class StereoCalibrationGUI:
                 variable=var,
                 command=lambda v, k=key: self._on_sgbm_param_change(k)
             )
-            scale.grid(row=0, column=1, sticky='ew', padx=5)
+            scale.grid(row=1, column=0, columnspan=3, sticky='ew', padx=5, pady=(0, 5))
             self.sgbm_scales[key] = scale
             
-            value_label = ttk.Label(frame, textvariable=var, width=5)
+            value_label = ttk.Label(frame, textvariable=var, width=6, font=('Arial', 11, 'bold'))
             value_label.grid(row=0, column=2, sticky='e')
     
     def _create_visualization_controls(self, parent):
