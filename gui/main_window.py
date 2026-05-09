@@ -195,6 +195,19 @@ class StereoCalibrationGUI:
             command=self._toggle_epipolar_lines
         ).pack(side=tk.LEFT, padx=5)
         
+        ttk.Label(options_frame, text="View:").pack(side=tk.LEFT, padx=(20, 5))
+        
+        self.view_type_var = tk.StringVar(value="rectified")
+        view_combo = ttk.Combobox(
+            options_frame,
+            textvariable=self.view_type_var,
+            values=["original", "rectified", "rectified gray"],
+            width=18,
+            state="readonly"
+        )
+        view_combo.pack(side=tk.LEFT, padx=2)
+        view_combo.bind('<<ComboboxSelected>>', lambda e: self._update_rectification())
+        
         ttk.Label(options_frame, text=" ").pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         ttk.Button(
@@ -489,13 +502,39 @@ class StereoCalibrationGUI:
             
             rect_left, rect_right = self.rectifier.rectify()
             
-            if rect_left is not None and rect_right is not None:
-                if self.epipolar_var.get():
-                    rect_left = self.rectifier.draw_epipolar_lines(rect_left)
-                    rect_right = self.rectifier.draw_epipolar_lines(rect_right)
+            view_type = self.view_type_var.get()
+            
+            if view_type == "original":
+                display_left = self.rectifier.left_image
+                display_right = self.rectifier.right_image
+            elif view_type == "rectified gray":
+                if rect_left is not None and rect_right is not None:
+                    left_gray = cv2.cvtColor(rect_left, cv2.COLOR_BGR2GRAY)
+                    right_gray = cv2.cvtColor(rect_right, cv2.COLOR_BGR2GRAY)
+                    
+                    combined_min = min(left_gray.min(), right_gray.min())
+                    combined_max = max(left_gray.max(), right_gray.max())
+                    
+                    if combined_max > combined_min:
+                        left_gray = ((left_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+                        right_gray = ((right_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+                    
+                    display_left = cv2.cvtColor(left_gray, cv2.COLOR_GRAY2BGR)
+                    display_right = cv2.cvtColor(right_gray, cv2.COLOR_GRAY2BGR)
+                else:
+                    display_left = self.rectifier.left_image
+                    display_right = self.rectifier.right_image
+            else:
+                display_left = rect_left if rect_left is not None else self.rectifier.left_image
+                display_right = rect_right if rect_right is not None else self.rectifier.right_image
+            
+            if display_left is not None and display_right is not None:
+                if self.epipolar_var.get() and view_type != "original":
+                    display_left = self.rectifier.draw_epipolar_lines(display_left)
+                    display_right = self.rectifier.draw_epipolar_lines(display_right)
                 
-                self.rectified_left_panel.set_image(rect_left)
-                self.rectified_right_panel.set_image(rect_right)
+                self.rectified_left_panel.set_image(display_left)
+                self.rectified_right_panel.set_image(display_right)
                 
                 self._update_depth()
             

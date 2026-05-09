@@ -97,6 +97,13 @@ class DepthEstimator:
             else:
                 right_gray = right_rectified
             
+            combined_min = min(left_gray.min(), right_gray.min())
+            combined_max = max(left_gray.max(), right_gray.max())
+            
+            if combined_max > combined_min:
+                left_gray = ((left_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+                right_gray = ((right_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+            
             block_size = self.bm_params.blockSize
             if block_size % 2 == 0:
                 block_size += 1
@@ -157,6 +164,13 @@ class DepthEstimator:
                 right_gray = cv2.cvtColor(right_rectified, cv2.COLOR_BGR2GRAY)
             else:
                 right_gray = right_rectified
+            
+            combined_min = min(left_gray.min(), right_gray.min())
+            combined_max = max(left_gray.max(), right_gray.max())
+            
+            if combined_max > combined_min:
+                left_gray = ((left_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+                right_gray = ((right_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
             
             block_size = self.sgbm_params.blockSize
             if block_size % 2 == 0:
