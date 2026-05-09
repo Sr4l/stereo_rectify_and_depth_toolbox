@@ -313,7 +313,7 @@ class StereoCalibrationGUI:
         """Create StereoSGBM parameter controls."""
         controls = [
             ('numDisparities', 'Num Disp:', 16, 256, 16, 16),
-            ('blockSize', 'Block:', 5, 25, 2, 9),
+            ('blockSize', 'Block:', 5, 255, 2, 9),
             ('minDisparity', 'Min Disp:', -100, 100, 1, 0),
             ('uniquenessRatio', 'Unique:', 1, 100, 1, 10),
             ('P1', 'P1:', 0, 1000, 10, 200),
