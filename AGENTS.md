@@ -7,46 +7,36 @@ source venv/bin/activate
 python main.py
 ```
 
-## Critical Gotchas (Learned from Bugs)
+## Critical Gotchas
 
 ### 1. ImagePanel `zoom_var` attribute
-When modifying `gui/image_panel.py`, the `zoom_var` attribute only exists when `show_controls=True`. Always check before accessing:
+The `zoom_var` attribute only exists when `show_controls=True`. Always check:
 ```python
 if hasattr(self, 'zoom_var') and self.zoom_var is not None:
     self.zoom_var.set(...)
 ```
 
 ### 2. StereoBM `blockSize` must be odd
-OpenCV StereoBM requires odd `blockSize` (5-255). The GUI automatically corrects even values in `gui/main_window.py:_update_depth()`:
+Auto-corrected in `gui/main_window.py:_update_depth()`:
 ```python
 if params['blockSize'] % 2 == 0:
     params['blockSize'] += 1
 ```
 
 ### 3. Intrinsic matrix validation
-Focal lengths (fx, fy) must be positive. `core/rectifier.py` auto-corrects invalid values to image dimensions with a warning.
+Focal lengths (fx, fy) must be positive. `core/rectifier.py` auto-corrects to image dimensions with warning.
+
+### 4. Depth panel tooltip callback
+The depth panel uses a `value_callback` to display disparity/depth values. The callback `_get_depth_value()` in `main_window.py` reads from `depth_estimator.disparity` and calculates depth in mm using camera parameters.
 
 ## Testing
 
 ```bash
-# Run all tests
+# Run all tests (all 30 must pass)
 python tests/test_all.py          # Core: 17 tests
-python tests/test_gui.py          # GUI: 6 tests (requires display)
+python tests/test_gui.py          # GUI: 6 tests (requires X11 display)
 python tests/test_integration.py  # Integration: 7 tests
 ```
-
-All 30 tests must pass.
-
-## Example Data
-
-Use synthetic stereo pairs in `examples/` for testing:
-```bash
-examples/circles_left.png
-examples/circles_right.png
-examples/circles_calibration.json
-```
-
-These have known ground truth and work reliably with the toolbox.
 
 ## Architecture
 
@@ -56,38 +46,55 @@ core/
   rectifier.py       # OpenCV stereoRectify
   depth.py           # StereoBM depth estimation
 gui/
-  main_window.py     # Main GUI (single window layout)
-  param_panel.py     # Camera parameter inputs
-  image_panel.py     # Image display with zoom/pan
+  main_window.py     # Main application
+  param_panel.py     # Camera parameter inputs (K, distortion, R, T)
+  image_panel.py     # Image display with zoom/pan/tooltip
 ```
 
 ## GUI Layout
 
-- **Left panel**: Camera parameters (K, distortion, R, T) - scrollable
-- **Center-top**: Rectified left/right images side-by-side
-- **Bottom-right**: Depth map with 6 BM parameter controls (compact 3-column layout)
+- **Left**: Camera parameters (scrollable)
+- **Center**: Rectified left/right images
+- **Right**: 
+  - Depth visualization panel (with tooltip showing disparity/depth)
+  - StereoBM Parameters (6 sliders in 3 rows × 2 cols)
+  - Visualization Controls (2 rows: buttons | view + colormap)
 
 ## BM Parameter Controls
 
-Labels are shortened for space. Mapping:
-- "Num Disp:" → numDisparities (must be multiple of 16)
-- "Block:" → blockSize (auto-corrected to odd)
+- "Num Disp:" → numDisparities (multiple of 16)
+- "Block:" → blockSize (auto-corrected to odd, 5-255)
 - "Min Disp:" → minDisparity
 - "Unique:" → uniquenessRatio
 - "Speckle W:" → speckleWindowSize
 - "Speckle R:" → speckleRange
 
-## Calibration Files
+## Visualization Controls
 
-JSON format with ground truth:
+- **View mode**: Toggle between "disparity" and "depth (mm)"
+  - Disparity: shows raw pixel shift
+  - Depth (mm): calculates `depth = (baseline × focal_length) / disparity × 1000`
+- **Colormap**: JET, VIRIDIS, MAGMA, INFERNO, PLASMA, CIVIDIS
+
+## Example Data
+
+Use synthetic examples in `examples/`:
+```bash
+examples/circles_left.png
+examples/circles_right.png
+examples/circles_calibration.json
+```
+
+All examples have ground truth calibration. See `examples/README.md` for recommended BM parameters per dataset.
+
+## Calibration File Format
+
 ```json
 {
   "left_camera": {"K": [[...]], "distortion": [...]},
   "right_camera": {"K": [[...]], "distortion": [...], "R": [[...]], "T": [...]}
 }
 ```
-
-Use `examples/generate_examples.py` to create more test pairs.
 
 ## Dependencies
 
@@ -99,5 +106,6 @@ Use `examples/generate_examples.py` to create more test pairs.
 ## Known Limitations
 
 1. Synthetic examples work best; real images need proper calibration
-2. Textureless regions (smooth spheres) produce poor disparity
-3. GUI tests require X11 display
+2. Textureless regions produce poor disparity
+3. GUI tests require X11 display (use `xvfb-run` for headless)
+4. Depth visualization clips to 10000mm maximum
