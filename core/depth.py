@@ -93,7 +93,7 @@ class StereoSGBMParams:
     preFilterCap: int = 31
     P1: int = 200
     P2: int = 400
-    mode: int = 0
+    mode: int = cv2.STEREO_SGBM_MODE_HH
 
 
 class DepthEstimator:
