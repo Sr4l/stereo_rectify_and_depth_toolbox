@@ -215,7 +215,12 @@ class StereoCalibrationGUI:
         depth_frame = ttk.LabelFrame(right_frame, text="Depth Map / Disparity")
         depth_frame.grid(row=0, column=0, sticky='nsew', padx=2, pady=2)
         
-        self.depth_panel = ImagePanel(depth_frame, "Depth Visualization", show_controls=True)
+        self.depth_panel = ImagePanel(
+            depth_frame, 
+            "Depth Visualization", 
+            show_controls=True,
+            value_callback=self._get_depth_value
+        )
         self.depth_panel.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         
         bm_frame = ttk.LabelFrame(right_frame, text="StereoBM Parameters")
@@ -500,6 +505,38 @@ class StereoCalibrationGUI:
             
         except Exception as e:
             self.status_var.set(f"Depth Error: {str(e)}")
+    
+    def _get_depth_value(self, x: int, y: int) -> str:
+        """Get depth/disparity value at pixel coordinates for tooltip."""
+        if self.depth_estimator.disparity is None or y >= self.depth_estimator.disparity.shape[0] or x >= self.depth_estimator.disparity.shape[1]:
+            return None
+        
+        try:
+            disp_val = self.depth_estimator.disparity[y, x]
+            
+            if disp_val <= 0:
+                return f"({x}, {y})  Disparity: 0.00  Depth: N/A"
+            
+            view_mode = self.view_mode_var.get()
+            
+            if view_mode == "depth (mm)":
+                K_left = self.left_param_panel.get_K()
+                T_right = self.right_param_panel.get_T()
+                baseline = np.linalg.norm(T_right)
+                focal_length = (K_left[0, 0] + K_left[1, 1]) / 2.0
+                
+                depth_m = (baseline * focal_length) / disp_val
+                depth_mm = depth_m * 1000
+                
+                if depth_mm > 10000:
+                    return f"({x}, {y})  Disparity: {disp_val:.2f}  Depth: >10000mm"
+                
+                return f"({x}, {y})  Disparity: {disp_val:.2f}  Depth: {depth_mm:.1f}mm"
+            else:
+                return f"({x}, {y})  Disparity: {disp_val:.2f}"
+                
+        except Exception:
+            return None
     
     def _save_rectified_images(self):
         """Save rectified images to files."""

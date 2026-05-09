@@ -14,6 +14,7 @@ class ImagePanel(ttk.LabelFrame):
         parent,
         title: str = "Image",
         show_controls: bool = True,
+        value_callback=None,
         **kwargs
     ):
         super().__init__(parent, text=title, **kwargs)
@@ -25,6 +26,7 @@ class ImagePanel(ttk.LabelFrame):
         self.pan_y = 0
         self.drag_start_x = 0
         self.drag_start_y = 0
+        self.value_callback = value_callback
         
         self._create_widgets(show_controls)
     
@@ -266,6 +268,12 @@ class ImagePanel(ttk.LabelFrame):
         img_y = int((event.y - y) / self.zoom + img_h // 2)
         
         if 0 <= img_x < img_w and 0 <= img_y < img_h:
+            if self.value_callback is not None:
+                value_str = self.value_callback(img_x, img_y)
+                if value_str:
+                    self._show_tooltip(value_str, event.x_root, event.y_root)
+                    return
+            
             pixel = self.image[img_y, img_x]
             
             if len(self.image.shape) == 3:
