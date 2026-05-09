@@ -163,8 +163,11 @@ def test_depth_estimator_initialization():
     
     estimator = DepthEstimator()
     
-    assert estimator.params.numDisparities == 16, "Default numDisparities should be 16"
-    assert estimator.params.blockSize == 9, "Default blockSize should be 9"
+    assert estimator.bm_params.numDisparities == 16, "Default BM numDisparities should be 16"
+    assert estimator.bm_params.blockSize == 9, "Default BM blockSize should be 9"
+    assert estimator.sgbm_params.numDisparities == 16, "Default SGBM numDisparities should be 16"
+    assert estimator.sgbm_params.blockSize == 9, "Default SGBM blockSize should be 9"
+    assert estimator.algorithm == 'BM', "Default algorithm should be BM"
     assert estimator.disparity is None, "Disparity should be None initially"
     assert estimator.depth_map is None, "Depth map should be None initially"
     
@@ -179,11 +182,44 @@ def test_depth_estimator_set_bm_params():
     
     estimator.set_bm_params(numDisparities=32, blockSize=15, minDisparity=5)
     
-    assert estimator.params.numDisparities == 32, "numDisparities not set"
-    assert estimator.params.blockSize == 15, "blockSize not set"
-    assert estimator.params.minDisparity == 5, "minDisparity not set"
+    assert estimator.bm_params.numDisparities == 32, "numDisparities not set"
+    assert estimator.bm_params.blockSize == 15, "blockSize not set"
+    assert estimator.bm_params.minDisparity == 5, "minDisparity not set"
     
     print("  ✓ Set BM params passed")
+
+
+def test_depth_estimator_set_sgbm_params():
+    """Test setting SGBM parameters."""
+    print("Testing DepthEstimator set SGBM params...")
+    
+    estimator = DepthEstimator()
+    
+    estimator.set_sgbm_params(numDisparities=32, blockSize=15, P1=300, P2=500)
+    
+    assert estimator.sgbm_params.numDisparities == 32, "numDisparities not set"
+    assert estimator.sgbm_params.blockSize == 15, "blockSize not set"
+    assert estimator.sgbm_params.P1 == 300, "P1 not set"
+    assert estimator.sgbm_params.P2 == 500, "P2 not set"
+    
+    print("  ✓ Set SGBM params passed")
+
+
+def test_depth_estimator_set_algorithm():
+    """Test setting algorithm."""
+    print("Testing DepthEstimator set algorithm...")
+    
+    estimator = DepthEstimator()
+    
+    assert estimator.algorithm == 'BM', "Default should be BM"
+    
+    estimator.set_algorithm('SGBM')
+    assert estimator.algorithm == 'SGBM', "Failed to set SGBM"
+    
+    estimator.set_algorithm('bm')
+    assert estimator.algorithm == 'BM', "Should uppercase BM"
+    
+    print("  ✓ Set algorithm passed")
 
 
 def test_depth_estimator_set_camera_params():
@@ -219,6 +255,28 @@ def test_depth_estimator_compute_disparity():
     assert disparity.dtype == np.float32, f"Disparity dtype should be float32, got {disparity.dtype}"
     
     print("  ✓ Compute disparity passed")
+
+
+def test_depth_estimator_compute_disparity_sgbm():
+    """Test SGBM disparity computation."""
+    print("Testing DepthEstimator compute disparity SGBM...")
+    
+    estimator = DepthEstimator()
+    estimator.set_algorithm('SGBM')
+    
+    result = estimator.compute_disparity_sgbm(None, None)
+    assert result is None, "Should return None for None inputs"
+    
+    left_img = np.random.randint(50, 200, (480, 640, 3), dtype=np.uint8)
+    right_img = np.random.randint(50, 200, (480, 640, 3), dtype=np.uint8)
+    
+    disparity = estimator.compute_disparity_sgbm(left_img, right_img)
+    
+    assert disparity is not None, "Disparity should not be None"
+    assert disparity.shape == (480, 640), f"Disparity shape mismatch: {disparity.shape}"
+    assert disparity.dtype == np.float32, f"Disparity dtype should be float32, got {disparity.dtype}"
+    
+    print("  ✓ Compute disparity SGBM passed")
 
 
 def test_depth_estimator_compute_depth():
@@ -421,8 +479,11 @@ def run_all_tests():
         test_stereo_rectifier_draw_epipolar_lines,
         test_depth_estimator_initialization,
         test_depth_estimator_set_bm_params,
+        test_depth_estimator_set_sgbm_params,
+        test_depth_estimator_set_algorithm,
         test_depth_estimator_set_camera_params,
         test_depth_estimator_compute_disparity,
+        test_depth_estimator_compute_disparity_sgbm,
         test_depth_estimator_compute_depth,
         test_depth_estimator_apply_colormap,
         test_depth_estimator_get_stats,

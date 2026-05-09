@@ -19,21 +19,49 @@ class StereoBMParams:
     mode: int = 0
 
 
+@dataclass
+class StereoSGBMParams:
+    """Parameters for StereoSGBM algorithm."""
+    numDisparities: int = 16
+    blockSize: int = 9
+    minDisparity: int = 0
+    uniquenessRatio: int = 10
+    speckleWindowSize: int = 100
+    speckleRange: int = 1
+    disp12MaxDiff: int = 1
+    preFilterCap: int = 31
+    P1: int = 200
+    P2: int = 400
+    mode: int = 0
+
+
 class DepthEstimator:
-    """Handles depth estimation using StereoBM."""
+    """Handles depth estimation using StereoBM or StereoSGBM."""
     
     def __init__(self):
-        self.params = StereoBMParams()
+        self.bm_params = StereoBMParams()
+        self.sgbm_params = StereoSGBMParams()
+        self.algorithm = 'BM'
         self.disparity: Optional[np.ndarray] = None
         self.depth_map: Optional[np.ndarray] = None
         self.baseline: float = 1.0
         self.focal_length: float = 1.0
     
+    def set_algorithm(self, algorithm: str):
+        """Set the stereo matching algorithm ('BM' or 'SGBM')."""
+        self.algorithm = algorithm.upper()
+    
     def set_bm_params(self, **kwargs):
         """Update StereoBM parameters."""
         for key, value in kwargs.items():
-            if hasattr(self.params, key):
-                setattr(self.params, key, value)
+            if hasattr(self.bm_params, key):
+                setattr(self.bm_params, key, value)
+    
+    def set_sgbm_params(self, **kwargs):
+        """Update StereoSGBM parameters."""
+        for key, value in kwargs.items():
+            if hasattr(self.sgbm_params, key):
+                setattr(self.sgbm_params, key, value)
     
     def set_camera_params(self, baseline: float, focal_length: float):
         """Set camera parameters for depth calculation."""
@@ -69,12 +97,12 @@ class DepthEstimator:
             else:
                 right_gray = right_rectified
             
-            block_size = self.params.blockSize
+            block_size = self.bm_params.blockSize
             if block_size % 2 == 0:
                 block_size += 1
             block_size = max(5, min(255, block_size))
             
-            num_disparities = self.params.numDisparities
+            num_disparities = self.bm_params.numDisparities
             num_disparities = max(16, min(256, num_disparities))
             if num_disparities % 16 != 0:
                 num_disparities = ((num_disparities // 16) + 1) * 16
@@ -84,13 +112,13 @@ class DepthEstimator:
                 blockSize=block_size
             )
             
-            sbm.setMinDisparity(self.params.minDisparity)
-            sbm.setUniquenessRatio(self.params.uniquenessRatio)
-            sbm.setSpeckleWindowSize(self.params.speckleWindowSize)
-            sbm.setSpeckleRange(self.params.speckleRange)
-            sbm.setDisp12MaxDiff(self.params.disp12MaxDiff)
-            sbm.setPreFilterCap(self.params.preFilterCap)
-            sbm.setTextureThreshold(int(self.params.textureThreshold))
+            sbm.setMinDisparity(self.bm_params.minDisparity)
+            sbm.setUniquenessRatio(self.bm_params.uniquenessRatio)
+            sbm.setSpeckleWindowSize(self.bm_params.speckleWindowSize)
+            sbm.setSpeckleRange(self.bm_params.speckleRange)
+            sbm.setDisp12MaxDiff(self.bm_params.disp12MaxDiff)
+            sbm.setPreFilterCap(self.bm_params.preFilterCap)
+            sbm.setTextureThreshold(int(self.bm_params.textureThreshold))
             
             self.disparity = sbm.compute(left_gray, right_gray)
             self.disparity = self.disparity.astype(np.float32) / 16.0
@@ -98,7 +126,70 @@ class DepthEstimator:
             return self.disparity
             
         except Exception as e:
-            print(f"Error computing disparity: {e}")
+            print(f"Error computing disparity (BM): {e}")
+            return None
+    
+    def compute_disparity_sgbm(
+        self, 
+        left_rectified: np.ndarray, 
+        right_rectified: np.ndarray
+    ) -> Optional[np.ndarray]:
+        """
+        Compute disparity map using StereoSGBM.
+        
+        Args:
+            left_rectified: Rectified left image (grayscale or color)
+            right_rectified: Rectified right image (grayscale or color)
+        
+        Returns:
+            Disparity map or None on failure
+        """
+        if left_rectified is None or right_rectified is None:
+            return None
+        
+        try:
+            if len(left_rectified.shape) == 3:
+                left_gray = cv2.cvtColor(left_rectified, cv2.COLOR_BGR2GRAY)
+            else:
+                left_gray = left_rectified
+            
+            if len(right_rectified.shape) == 3:
+                right_gray = cv2.cvtColor(right_rectified, cv2.COLOR_BGR2GRAY)
+            else:
+                right_gray = right_rectified
+            
+            block_size = self.sgbm_params.blockSize
+            if block_size % 2 == 0:
+                block_size += 1
+            block_size = max(5, min(255, block_size))
+            
+            num_disparities = self.sgbm_params.numDisparities
+            num_disparities = max(16, min(256, num_disparities))
+            if num_disparities % 16 != 0:
+                num_disparities = ((num_disparities // 16) + 1) * 16
+            
+            sgbm = cv2.StereoSGBM_create(
+                numDisparities=num_disparities,
+                blockSize=block_size,
+                P1=self.sgbm_params.P1,
+                P2=self.sgbm_params.P2,
+                preFilterCap=self.sgbm_params.preFilterCap,
+                uniquenessRatio=self.sgbm_params.uniquenessRatio,
+                speckleWindowSize=self.sgbm_params.speckleWindowSize,
+                speckleRange=self.sgbm_params.speckleRange,
+                disp12MaxDiff=self.sgbm_params.disp12MaxDiff,
+                mode=self.sgbm_params.mode
+            )
+            
+            sgbm.setMinDisparity(self.sgbm_params.minDisparity)
+            
+            self.disparity = sgbm.compute(left_gray, right_gray)
+            self.disparity = self.disparity.astype(np.float32) / 16.0
+            
+            return self.disparity
+            
+        except Exception as e:
+            print(f"Error computing disparity (SGBM): {e}")
             return None
     
     def compute_depth(

@@ -225,15 +225,48 @@ class StereoCalibrationGUI:
         )
         self.depth_panel.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         
-        bm_frame = ttk.LabelFrame(right_frame, text="StereoBM Parameters")
-        bm_frame.grid(row=1, column=0, sticky='ew', padx=2, pady=5)
+        algo_frame = ttk.LabelFrame(right_frame, text="Stereo Matching Algorithm")
+        algo_frame.grid(row=1, column=0, sticky='ew', padx=2, pady=5)
         
-        self._create_bm_controls(bm_frame)
+        self._create_algorithm_selector(algo_frame)
+        
+        self.bm_frame = ttk.LabelFrame(right_frame, text="StereoBM Parameters")
+        self.bm_frame.grid(row=2, column=0, sticky='ew', padx=2, pady=5)
+        
+        self._create_bm_controls(self.bm_frame)
+        
+        self.sgbm_frame = ttk.LabelFrame(right_frame, text="StereoSGBM Parameters")
+        self.sgbm_frame.grid(row=3, column=0, sticky='ew', padx=2, pady=5)
+        
+        self._create_sgbm_controls(self.sgbm_frame)
+        
+        self._update_algorithm_visibility()
         
         vis_frame = ttk.LabelFrame(right_frame, text="Visualization Controls")
-        vis_frame.grid(row=2, column=0, sticky='ew', padx=2, pady=5)
+        vis_frame.grid(row=4, column=0, sticky='ew', padx=2, pady=5)
         
         self._create_visualization_controls(vis_frame)
+    
+    def _create_algorithm_selector(self, parent):
+        """Create algorithm selector."""
+        frame = ttk.Frame(parent)
+        frame.pack(fill=tk.X, padx=5, pady=2)
+        
+        ttk.Label(frame, text="Algorithm:").pack(side=tk.LEFT, padx=2)
+        
+        self.algorithm_var = tk.StringVar(value="BM")
+        algo_combo = ttk.Combobox(
+            frame,
+            textvariable=self.algorithm_var,
+            values=["BM", "SGBM"],
+            width=10,
+            state="readonly"
+        )
+        algo_combo.pack(side=tk.LEFT, padx=2)
+        algo_combo.bind('<<ComboboxSelected>>', lambda e: self._on_algorithm_change())
+        
+        ttk.Label(frame, text="  BM: Fast, good for texture-rich scenes").pack(side=tk.LEFT, padx=5)
+        ttk.Label(frame, text="SGBM: Slower, better quality").pack(side=tk.LEFT, padx=5)
     
     def _create_bm_controls(self, parent):
         """Create StereoBM parameter controls."""
@@ -250,13 +283,14 @@ class StereoCalibrationGUI:
         self.bm_scales = {}
         
         for i, (key, label, from_val, to_val, step, default) in enumerate(controls):
-            row = i % 3
-            col = (i // 3) * 2
+            row = i // 2
+            col = (i % 2) * 2
             
             frame = ttk.Frame(parent)
-            frame.grid(row=row, column=col, sticky='w', padx=3, pady=2)
+            frame.grid(row=row, column=col, sticky='ew', padx=5, pady=3)
+            frame.columnconfigure(1, weight=1)
             
-            ttk.Label(frame, text=label, width=10).pack(side=tk.LEFT)
+            ttk.Label(frame, text=label, width=12).grid(row=0, column=0, sticky='w')
             
             var = tk.IntVar(value=default)
             self.bm_vars[key] = var
@@ -266,15 +300,58 @@ class StereoCalibrationGUI:
                 from_=from_val,
                 to=to_val,
                 orient=tk.HORIZONTAL,
-                length=80,
                 variable=var,
                 command=lambda v, k=key: self._on_bm_param_change(k)
             )
-            scale.pack(side=tk.LEFT, padx=2)
+            scale.grid(row=0, column=1, sticky='ew', padx=5)
             self.bm_scales[key] = scale
             
-            value_label = ttk.Label(frame, textvariable=var, width=4)
-            value_label.pack(side=tk.LEFT)
+            value_label = ttk.Label(frame, textvariable=var, width=5)
+            value_label.grid(row=0, column=2, sticky='e')
+    
+    def _create_sgbm_controls(self, parent):
+        """Create StereoSGBM parameter controls."""
+        controls = [
+            ('numDisparities', 'Num Disp:', 16, 256, 16, 16),
+            ('blockSize', 'Block:', 5, 25, 2, 9),
+            ('minDisparity', 'Min Disp:', -100, 100, 1, 0),
+            ('uniquenessRatio', 'Unique:', 1, 100, 1, 10),
+            ('P1', 'P1:', 0, 1000, 10, 200),
+            ('P2', 'P2:', 0, 2000, 20, 400),
+            ('preFilterCap', 'PreFilter:', 0, 100, 1, 31),
+            ('speckleWindowSize', 'Speckle W:', 0, 200, 1, 100),
+            ('speckleRange', 'Speckle R:', 0, 50, 1, 1),
+        ]
+        
+        self.sgbm_vars = {}
+        self.sgbm_scales = {}
+        
+        for i, (key, label, from_val, to_val, step, default) in enumerate(controls):
+            row = i // 2
+            col = (i % 2) * 2
+            
+            frame = ttk.Frame(parent)
+            frame.grid(row=row, column=col, sticky='ew', padx=5, pady=3)
+            frame.columnconfigure(1, weight=1)
+            
+            ttk.Label(frame, text=label, width=12).grid(row=0, column=0, sticky='w')
+            
+            var = tk.IntVar(value=default)
+            self.sgbm_vars[key] = var
+            
+            scale = ttk.Scale(
+                frame,
+                from_=from_val,
+                to=to_val,
+                orient=tk.HORIZONTAL,
+                variable=var,
+                command=lambda v, k=key: self._on_sgbm_param_change(k)
+            )
+            scale.grid(row=0, column=1, sticky='ew', padx=5)
+            self.sgbm_scales[key] = scale
+            
+            value_label = ttk.Label(frame, textvariable=var, width=5)
+            value_label.grid(row=0, column=2, sticky='e')
     
     def _create_visualization_controls(self, parent):
         """Create visualization control widgets."""
@@ -436,8 +513,48 @@ class StereoCalibrationGUI:
         """Toggle epipolar lines display."""
         self._update_rectification()
     
+    def _on_algorithm_change(self):
+        """Handle algorithm change."""
+        algo = self.algorithm_var.get()
+        self.depth_estimator.set_algorithm(algo)
+        
+        self._update_algorithm_visibility()
+        
+        if algo == 'SGBM':
+            params = {key: var.get() for key, var in self.sgbm_vars.items()}
+            self.depth_estimator.set_sgbm_params(**params)
+        else:
+            params = {key: var.get() for key, var in self.bm_vars.items()}
+            self.depth_estimator.set_bm_params(**params)
+        
+        self._update_depth()
+    
+    def _update_algorithm_visibility(self):
+        """Show/hide parameter panels based on selected algorithm."""
+        algo = self.algorithm_var.get()
+        
+        if algo == 'BM':
+            self.bm_frame.grid()
+            self.sgbm_frame.grid_remove()
+        else:
+            self.bm_frame.grid_remove()
+            self.sgbm_frame.grid()
+    
     def _on_bm_param_change(self, key):
         """Handle BM parameter change with debouncing."""
+        if self.algorithm_var.get() != 'BM':
+            return
+        
+        if self.depth_debounce_id:
+            self.root.after_cancel(self.depth_debounce_id)
+        
+        self.depth_debounce_id = self.root.after(300, self._update_depth)
+    
+    def _on_sgbm_param_change(self, key):
+        """Handle SGBM parameter change with debouncing."""
+        if self.algorithm_var.get() != 'SGBM':
+            return
+        
         if self.depth_debounce_id:
             self.root.after_cancel(self.depth_debounce_id)
         
@@ -451,25 +568,36 @@ class StereoCalibrationGUI:
         try:
             start_time = cv2.getTickCount()
             
-            params = {key: var.get() for key, var in self.bm_vars.items()}
+            algo = self.algorithm_var.get()
             
-            if 'blockSize' in params:
-                if params['blockSize'] % 2 == 0:
-                    params['blockSize'] += 1
-                params['blockSize'] = max(5, min(255, params['blockSize']))
-            
-            self.depth_estimator.set_bm_params(**params)
-            
-            K_left = self.left_param_panel.get_K()
-            T_right = self.right_param_panel.get_T()
-            baseline = np.linalg.norm(T_right)
-            focal_length = (K_left[0, 0] + K_left[1, 1]) / 2.0
-            self.depth_estimator.set_camera_params(baseline, focal_length)
-            
-            disparity = self.depth_estimator.compute_disparity(
-                self.rectifier.rectified_left,
-                self.rectifier.rectified_right
-            )
+            if algo == 'SGBM':
+                params = {key: var.get() for key, var in self.sgbm_vars.items()}
+                
+                if 'blockSize' in params:
+                    if params['blockSize'] % 2 == 0:
+                        params['blockSize'] += 1
+                    params['blockSize'] = max(5, min(255, params['blockSize']))
+                
+                self.depth_estimator.set_sgbm_params(**params)
+                
+                disparity = self.depth_estimator.compute_disparity_sgbm(
+                    self.rectifier.rectified_left,
+                    self.rectifier.rectified_right
+                )
+            else:
+                params = {key: var.get() for key, var in self.bm_vars.items()}
+                
+                if 'blockSize' in params:
+                    if params['blockSize'] % 2 == 0:
+                        params['blockSize'] += 1
+                    params['blockSize'] = max(5, min(255, params['blockSize']))
+                
+                self.depth_estimator.set_bm_params(**params)
+                
+                disparity = self.depth_estimator.compute_disparity(
+                    self.rectifier.rectified_left,
+                    self.rectifier.rectified_right
+                )
             
             if disparity is not None:
                 colormap_name = self.colormap_var.get()
@@ -491,13 +619,13 @@ class StereoCalibrationGUI:
                         depth_mm = depth_map * 1000
                         depth_mm_clipped = np.clip(depth_mm, 0, 10000)
                         depth_normalized = ((depth_mm_clipped - depth_mm_clipped.min()) / 
-                                          (depth_mm_clipped.max() - depth_mm_clipped.min()) * 255).astype(np.uint8)
+                                           (depth_mm_clipped.max() - depth_mm_clipped.min()) * 255).astype(np.uint8)
                         colored_depth = cv2.applyColorMap(depth_normalized, colormap)
                         self.depth_panel.set_image(colored_depth)
                     
                     stats = self.depth_estimator.get_depth_stats()
                     self.status_var.set(
-                        f"Depth - Min: {stats['min']*1000:.1f}mm, Max: {stats['max']*1000:.1f}mm, "
+                        f"[{algo}] Depth - Min: {stats['min']*1000:.1f}mm, Max: {stats['max']*1000:.1f}mm, "
                         f"Mean: {stats['mean']*1000:.1f}mm"
                     )
                 else:
@@ -506,7 +634,7 @@ class StereoCalibrationGUI:
                     
                     stats = self.depth_estimator.get_disparity_stats()
                     self.status_var.set(
-                        f"Disparity - Min: {stats['min']:.2f}, Max: {stats['max']:.2f}, "
+                        f"[{algo}] Disparity - Min: {stats['min']:.2f}, Max: {stats['max']:.2f}, "
                         f"Mean: {stats['mean']:.2f}"
                     )
             
