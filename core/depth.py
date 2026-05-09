@@ -1,7 +1,45 @@
 import numpy as np
 import cv2
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any, List
 from dataclasses import dataclass
+
+
+def normalize_stereo_pair(
+    left_image: np.ndarray,
+    right_image: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Convert stereo pair to grayscale and apply min-max normalization.
+    
+    Both images are converted to grayscale (if needed), then normalized
+    to 0-255 range using their combined min/max values for consistent
+    intensity ranges.
+    
+    Args:
+        left_image: Left image (grayscale or BGR color)
+        right_image: Right image (grayscale or BGR color)
+    
+    Returns:
+        Tuple of (left_normalized, right_normalized) as uint8 grayscale
+    """
+    if len(left_image.shape) == 3:
+        left_gray = cv2.cvtColor(left_image, cv2.COLOR_BGR2GRAY)
+    else:
+        left_gray = left_image
+    
+    if len(right_image.shape) == 3:
+        right_gray = cv2.cvtColor(right_image, cv2.COLOR_BGR2GRAY)
+    else:
+        right_gray = right_image
+    
+    combined_min = min(left_gray.min(), right_gray.min())
+    combined_max = max(left_gray.max(), right_gray.max())
+    
+    if combined_max > combined_min:
+        left_gray = ((left_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+        right_gray = ((right_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+    
+    return left_gray, right_gray
 
 
 @dataclass
@@ -87,22 +125,7 @@ class DepthEstimator:
             return None
         
         try:
-            if len(left_rectified.shape) == 3:
-                left_gray = cv2.cvtColor(left_rectified, cv2.COLOR_BGR2GRAY)
-            else:
-                left_gray = left_rectified
-            
-            if len(right_rectified.shape) == 3:
-                right_gray = cv2.cvtColor(right_rectified, cv2.COLOR_BGR2GRAY)
-            else:
-                right_gray = right_rectified
-            
-            combined_min = min(left_gray.min(), right_gray.min())
-            combined_max = max(left_gray.max(), right_gray.max())
-            
-            if combined_max > combined_min:
-                left_gray = ((left_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
-                right_gray = ((right_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+            left_gray, right_gray = normalize_stereo_pair(left_rectified, right_rectified)
             
             block_size = self.bm_params.blockSize
             if block_size % 2 == 0:
@@ -155,22 +178,7 @@ class DepthEstimator:
             return None
         
         try:
-            if len(left_rectified.shape) == 3:
-                left_gray = cv2.cvtColor(left_rectified, cv2.COLOR_BGR2GRAY)
-            else:
-                left_gray = left_rectified
-            
-            if len(right_rectified.shape) == 3:
-                right_gray = cv2.cvtColor(right_rectified, cv2.COLOR_BGR2GRAY)
-            else:
-                right_gray = right_rectified
-            
-            combined_min = min(left_gray.min(), right_gray.min())
-            combined_max = max(left_gray.max(), right_gray.max())
-            
-            if combined_max > combined_min:
-                left_gray = ((left_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
-                right_gray = ((right_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+            left_gray, right_gray = normalize_stereo_pair(left_rectified, right_rectified)
             
             block_size = self.sgbm_params.blockSize
             if block_size % 2 == 0:

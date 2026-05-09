@@ -11,7 +11,7 @@ import os
 from .param_panel import CameraParamPanel
 from .image_panel import ImagePanel, ThumbnailPanel
 from core.rectifier import StereoRectifier
-from core.depth import DepthEstimator
+from core.depth import DepthEstimator, normalize_stereo_pair
 
 
 class StereoCalibrationGUI:
@@ -509,16 +509,7 @@ class StereoCalibrationGUI:
                 display_right = self.rectifier.right_image
             elif view_type == "rectified gray":
                 if rect_left is not None and rect_right is not None:
-                    left_gray = cv2.cvtColor(rect_left, cv2.COLOR_BGR2GRAY)
-                    right_gray = cv2.cvtColor(rect_right, cv2.COLOR_BGR2GRAY)
-                    
-                    combined_min = min(left_gray.min(), right_gray.min())
-                    combined_max = max(left_gray.max(), right_gray.max())
-                    
-                    if combined_max > combined_min:
-                        left_gray = ((left_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
-                        right_gray = ((right_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
-                    
+                    left_gray, right_gray = normalize_stereo_pair(rect_left, rect_right)
                     display_left = cv2.cvtColor(left_gray, cv2.COLOR_GRAY2BGR)
                     display_right = cv2.cvtColor(right_gray, cv2.COLOR_GRAY2BGR)
                 else:
