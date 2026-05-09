@@ -45,6 +45,10 @@ class ImagePanel(ttk.LabelFrame):
         self.canvas.bind('<ButtonPress-1>', self._on_drag_start)
         self.canvas.bind('<B1-Motion>', self._on_drag_motion)
         self.canvas.bind('<Button-3>', self._show_context_menu)
+        self.canvas.bind('<Motion>', self._on_mouse_motion)
+        
+        self.tooltip = None
+        self.tooltip_label = None
         
         if show_controls:
             self._create_control_bar()
@@ -233,6 +237,79 @@ class ImagePanel(ttk.LabelFrame):
                 cv2.imwrite(file_path, img_save)
             except Exception as e:
                 tk.messagebox.showerror("Error", f"Failed to save image: {e}")
+    
+    def _on_mouse_motion(self, event):
+        """Handle mouse motion to show pixel value tooltip."""
+        if self.image is None:
+            self._hide_tooltip()
+            return
+        
+        canvas_w = self.canvas.winfo_width()
+        canvas_h = self.canvas.winfo_height()
+        
+        if canvas_w <= 1 or canvas_h <= 1:
+            self._hide_tooltip()
+            return
+        
+        img_h, img_w = self.image.shape[:2]
+        new_w = int(img_w * self.zoom)
+        new_h = int(img_h * self.zoom)
+        
+        if new_w <= 0 or new_h <= 0:
+            self._hide_tooltip()
+            return
+        
+        x = canvas_w // 2 + self.pan_x
+        y = canvas_h // 2 + self.pan_y
+        
+        img_x = int((event.x - x) / self.zoom + img_w // 2)
+        img_y = int((event.y - y) / self.zoom + img_h // 2)
+        
+        if 0 <= img_x < img_w and 0 <= img_y < img_h:
+            pixel = self.image[img_y, img_x]
+            
+            if len(self.image.shape) == 3:
+                value_str = f"({img_x}, {img_y})  R:{pixel[2]:3d}  G:{pixel[1]:3d}  B:{pixel[0]:3d}"
+            else:
+                value_str = f"({img_x}, {img_y})  Value:{pixel:3d}"
+            
+            self._show_tooltip(value_str, event.x_root, event.y_root)
+        else:
+            self._hide_tooltip()
+    
+    def _show_tooltip(self, text: str, x: int, y: int):
+        """Show tooltip at specified position."""
+        if self.tooltip_label is not None:
+            self.tooltip_label.destroy()
+            self.tooltip_label = None
+        
+        self.tooltip_label = tk.Toplevel(self)
+        self.tooltip_label.wm_overrideredirect(True)
+        self.tooltip_label.wm_attributes("-topmost", True)
+        
+        label = tk.Label(
+            self.tooltip_label,
+            text=text,
+            background="#ffffe0",
+            foreground="#000000",
+            font=('Arial', 9),
+            padx=4,
+            pady=2,
+            relief='solid',
+            borderwidth=1
+        )
+        label.pack()
+        
+        self.tooltip_label.wm_geometry(f"+{x + 10}+{y + 10}")
+    
+    def _hide_tooltip(self):
+        """Hide the tooltip."""
+        if self.tooltip_label is not None:
+            try:
+                self.tooltip_label.destroy()
+            except Exception:
+                pass
+            self.tooltip_label = None
     
     def _copy_to_clipboard(self):
         """Copy current image to clipboard."""
