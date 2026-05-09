@@ -106,7 +106,8 @@ class ImagePanel(ttk.LabelFrame):
     def _on_zoom_change(self, value):
         """Handle zoom slider change."""
         self.zoom = float(value)
-        self.zoom_var.set(f"{int(self.zoom * 100)}%")
+        if hasattr(self, 'zoom_var') and self.zoom_var is not None:
+            self.zoom_var.set(f"{int(self.zoom * 100)}%")
         self._update_display()
     
     def _on_drag_start(self, event):
@@ -204,7 +205,8 @@ class ImagePanel(ttk.LabelFrame):
             image=self.photo_image
         )
         
-        self.zoom_var.set(f"{int(self.zoom * 100)}%")
+        if hasattr(self, 'zoom_var') and self.zoom_var is not None:
+            self.zoom_var.set(f"{int(self.zoom * 100)}%")
     
     def _save_image(self):
         """Save current image to file."""

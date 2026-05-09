@@ -226,12 +226,12 @@ class StereoCalibrationGUI:
     def _create_bm_controls(self, parent):
         """Create StereoBM parameter controls."""
         controls = [
-            ('numDisparities', 'Num Disparities:', 16, 256, 16, 16),
-            ('blockSize', 'Block Size:', 5, 25, 2, 9),
-            ('minDisparity', 'Min Disparity:', -100, 100, 1, 0),
-            ('uniquenessRatio', 'Uniqueness Ratio:', 1, 100, 1, 10),
-            ('speckleWindowSize', 'Speckle Window:', 0, 200, 1, 100),
-            ('speckleRange', 'Speckle Range:', 0, 50, 1, 1),
+            ('numDisparities', 'Num Disp:', 16, 256, 16, 16),
+            ('blockSize', 'Block:', 5, 25, 2, 9),
+            ('minDisparity', 'Min Disp:', -100, 100, 1, 0),
+            ('uniquenessRatio', 'Unique:', 1, 100, 1, 10),
+            ('speckleWindowSize', 'Speckle W:', 0, 200, 1, 100),
+            ('speckleRange', 'Speckle R:', 0, 50, 1, 1),
         ]
         
         self.bm_vars = {}
@@ -242,9 +242,9 @@ class StereoCalibrationGUI:
             col = (i % 3) * 2
             
             frame = ttk.Frame(parent)
-            frame.grid(row=row, column=col, sticky='w', padx=5, pady=3)
+            frame.grid(row=row, column=col, sticky='w', padx=3, pady=2)
             
-            ttk.Label(frame, text=label, width=15).pack(side=tk.LEFT)
+            ttk.Label(frame, text=label, width=10).pack(side=tk.LEFT)
             
             var = tk.IntVar(value=default)
             self.bm_vars[key] = var
@@ -254,7 +254,7 @@ class StereoCalibrationGUI:
                 from_=from_val,
                 to=to_val,
                 orient=tk.HORIZONTAL,
-                length=100,
+                length=80,
                 variable=var,
                 command=lambda v, k=key: self._on_bm_param_change(k)
             )
@@ -265,7 +265,7 @@ class StereoCalibrationGUI:
             value_label.pack(side=tk.LEFT)
         
         btn_frame = ttk.Frame(parent)
-        btn_frame.grid(row=2, column=0, columnspan=6, sticky='ew', padx=5, pady=5)
+        btn_frame.grid(row=2, column=0, columnspan=6, sticky='ew', padx=3, pady=5)
         
         ttk.Button(
             btn_frame,
@@ -281,14 +281,14 @@ class StereoCalibrationGUI:
         
         ttk.Label(btn_frame, text=" ").pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        ttk.Label(btn_frame, text="Colormap:").pack(side=tk.LEFT, padx=2)
+        ttk.Label(btn_frame, text="Map:").pack(side=tk.LEFT, padx=2)
         
         self.colormap_var = tk.StringVar(value="JET")
         colormap_combo = ttk.Combobox(
             btn_frame,
             textvariable=self.colormap_var,
             values=["JET", "VIRIDIS", "MAGMA", "INFERNO", "PLASMA", "CIVIDIS"],
-            width=10,
+            width=8,
             state="readonly"
         )
         colormap_combo.pack(side=tk.LEFT, padx=2)
@@ -399,7 +399,10 @@ class StereoCalibrationGUI:
             self.status_var.set("Rectification updated")
             
         except Exception as e:
-            self.status_var.set(f"Error: {str(e)}")
+            error_msg = str(e)
+            if 'stereoRectify' in error_msg or 'nt > 0.0' in error_msg:
+                error_msg = "Invalid camera parameters. Please check:\n- Focal lengths (fx, fy) must be positive\n- Principal point (cx, cy) should be within image bounds"
+            self.status_var.set(f"Error: {error_msg}")
     
     def _toggle_epipolar_lines(self):
         """Toggle epipolar lines display."""
@@ -421,6 +424,12 @@ class StereoCalibrationGUI:
             start_time = cv2.getTickCount()
             
             params = {key: var.get() for key, var in self.bm_vars.items()}
+            
+            if 'blockSize' in params:
+                if params['blockSize'] % 2 == 0:
+                    params['blockSize'] += 1
+                params['blockSize'] = max(5, min(255, params['blockSize']))
+            
             self.depth_estimator.set_bm_params(**params)
             
             disparity = self.depth_estimator.compute_disparity(

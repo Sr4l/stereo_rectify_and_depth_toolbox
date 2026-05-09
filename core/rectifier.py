@@ -67,6 +67,21 @@ class StereoRectifier:
         
         h, w = self.left_image.shape[:2]
         
+        # Validate intrinsic parameters
+        if self.left_K[0, 0] <= 0 or self.left_K[1, 1] <= 0:
+            print("Warning: Invalid left camera focal length. Using default values.")
+            self.left_K[0, 0] = w
+            self.left_K[1, 1] = w
+            self.left_K[0, 2] = w / 2
+            self.left_K[1, 2] = h / 2
+        
+        if self.right_K[0, 0] <= 0 or self.right_K[1, 1] <= 0:
+            print("Warning: Invalid right camera focal length. Using default values.")
+            self.right_K[0, 0] = w
+            self.right_K[1, 1] = w
+            self.right_K[0, 2] = w / 2
+            self.right_K[1, 2] = h / 2
+        
         try:
             R1, R2, P1, P2, Q, validPixROI1, validPixROI2 = cv2.stereoRectify(
                 self.left_K,

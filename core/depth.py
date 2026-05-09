@@ -69,9 +69,19 @@ class DepthEstimator:
             else:
                 right_gray = right_rectified
             
+            block_size = self.params.blockSize
+            if block_size % 2 == 0:
+                block_size += 1
+            block_size = max(5, min(255, block_size))
+            
+            num_disparities = self.params.numDisparities
+            num_disparities = max(16, min(256, num_disparities))
+            if num_disparities % 16 != 0:
+                num_disparities = ((num_disparities // 16) + 1) * 16
+            
             sbm = cv2.StereoBM_create(
-                numDisparities=self.params.numDisparities,
-                blockSize=self.params.blockSize
+                numDisparities=num_disparities,
+                blockSize=block_size
             )
             
             sbm.setMinDisparity(self.params.minDisparity)
