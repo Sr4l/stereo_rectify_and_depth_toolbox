@@ -281,7 +281,20 @@ class StereoCalibrationGUI:
         
         ttk.Label(btn_frame, text=" ").pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        ttk.Label(btn_frame, text="Map:").pack(side=tk.LEFT, padx=2)
+        ttk.Label(btn_frame, text="View:").pack(side=tk.LEFT, padx=2)
+        
+        self.view_mode_var = tk.StringVar(value="disparity")
+        view_combo = ttk.Combobox(
+            btn_frame,
+            textvariable=self.view_mode_var,
+            values=["disparity", "depth (mm)"],
+            width=12,
+            state="readonly"
+        )
+        view_combo.pack(side=tk.LEFT, padx=2)
+        view_combo.bind('<<ComboboxSelected>>', lambda e: self._update_depth())
+        
+        ttk.Label(btn_frame, text="Colormap:").pack(side=tk.LEFT, padx=(10, 2))
         
         self.colormap_var = tk.StringVar(value="JET")
         colormap_combo = ttk.Combobox(
@@ -432,6 +445,12 @@ class StereoCalibrationGUI:
             
             self.depth_estimator.set_bm_params(**params)
             
+            K_left = self.left_param_panel.get_K()
+            T_right = self.right_param_panel.get_T()
+            baseline = np.linalg.norm(T_right)
+            focal_length = (K_left[0, 0] + K_left[1, 1]) / 2.0
+            self.depth_estimator.set_camera_params(baseline, focal_length)
+            
             disparity = self.depth_estimator.compute_disparity(
                 self.rectifier.rectified_left,
                 self.rectifier.rectified_right
@@ -449,14 +468,32 @@ class StereoCalibrationGUI:
                 }
                 colormap = colormap_map.get(colormap_name, cv2.COLORMAP_JET)
                 
-                colored_disparity = self.depth_estimator.apply_colormap(disparity, colormap)
-                self.depth_panel.set_image(colored_disparity)
+                view_mode = self.view_mode_var.get()
                 
-                stats = self.depth_estimator.get_disparity_stats()
-                self.status_var.set(
-                    f"Disparity - Min: {stats['min']:.2f}, Max: {stats['max']:.2f}, "
-                    f"Mean: {stats['mean']:.2f}"
-                )
+                if view_mode == "depth (mm)":
+                    depth_map = self.depth_estimator.compute_depth()
+                    if depth_map is not None:
+                        depth_mm = depth_map * 1000
+                        depth_mm_clipped = np.clip(depth_mm, 0, 10000)
+                        depth_normalized = ((depth_mm_clipped - depth_mm_clipped.min()) / 
+                                          (depth_mm_clipped.max() - depth_mm_clipped.min()) * 255).astype(np.uint8)
+                        colored_depth = cv2.applyColorMap(depth_normalized, colormap)
+                        self.depth_panel.set_image(colored_depth)
+                    
+                    stats = self.depth_estimator.get_depth_stats()
+                    self.status_var.set(
+                        f"Depth - Min: {stats['min']*1000:.1f}mm, Max: {stats['max']*1000:.1f}mm, "
+                        f"Mean: {stats['mean']*1000:.1f}mm"
+                    )
+                else:
+                    colored_disparity = self.depth_estimator.apply_colormap(disparity, colormap)
+                    self.depth_panel.set_image(colored_disparity)
+                    
+                    stats = self.depth_estimator.get_disparity_stats()
+                    self.status_var.set(
+                        f"Disparity - Min: {stats['min']:.2f}, Max: {stats['max']:.2f}, "
+                        f"Mean: {stats['mean']:.2f}"
+                    )
             
             elapsed = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
             self.process_time_var.set(f"Depth: {elapsed*1000:.1f}ms")
