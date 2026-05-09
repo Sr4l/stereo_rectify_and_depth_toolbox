@@ -210,6 +210,8 @@ class StereoCalibrationGUI:
         
         right_frame.grid_rowconfigure(0, weight=1)
         right_frame.grid_rowconfigure(1, weight=0)
+        right_frame.grid_rowconfigure(2, weight=0)
+        right_frame.grid_rowconfigure(3, weight=0)
         right_frame.grid_columnconfigure(0, weight=1)
         
         depth_frame = ttk.LabelFrame(right_frame, text="Depth Map / Disparity")
@@ -227,6 +229,11 @@ class StereoCalibrationGUI:
         bm_frame.grid(row=1, column=0, sticky='ew', padx=2, pady=5)
         
         self._create_bm_controls(bm_frame)
+        
+        vis_frame = ttk.LabelFrame(right_frame, text="Visualization Controls")
+        vis_frame.grid(row=2, column=0, sticky='ew', padx=2, pady=5)
+        
+        self._create_visualization_controls(vis_frame)
     
     def _create_bm_controls(self, parent):
         """Create StereoBM parameter controls."""
@@ -268,29 +275,32 @@ class StereoCalibrationGUI:
             
             value_label = ttk.Label(frame, textvariable=var, width=4)
             value_label.pack(side=tk.LEFT)
-        
-        btn_frame = ttk.Frame(parent)
-        btn_frame.grid(row=3, column=0, columnspan=6, sticky='ew', padx=3, pady=5)
+    
+    def _create_visualization_controls(self, parent):
+        """Create visualization control widgets."""
+        row1 = ttk.Frame(parent)
+        row1.pack(fill=tk.X, padx=5, pady=2)
         
         ttk.Button(
-            btn_frame,
+            row1,
             text="Update Depth",
             command=self._update_depth
         ).pack(side=tk.LEFT, padx=2)
         
         ttk.Button(
-            btn_frame,
+            row1,
             text="Save Depth Map",
             command=self._save_depth_map
         ).pack(side=tk.LEFT, padx=2)
         
-        ttk.Label(btn_frame, text=" ").pack(side=tk.LEFT, fill=tk.X, expand=True)
+        row2 = ttk.Frame(parent)
+        row2.pack(fill=tk.X, padx=5, pady=2)
         
-        ttk.Label(btn_frame, text="View:").pack(side=tk.LEFT, padx=2)
+        ttk.Label(row2, text="View:").pack(side=tk.LEFT, padx=2)
         
         self.view_mode_var = tk.StringVar(value="disparity")
         view_combo = ttk.Combobox(
-            btn_frame,
+            row2,
             textvariable=self.view_mode_var,
             values=["disparity", "depth (mm)"],
             width=12,
@@ -299,11 +309,11 @@ class StereoCalibrationGUI:
         view_combo.pack(side=tk.LEFT, padx=2)
         view_combo.bind('<<ComboboxSelected>>', lambda e: self._update_depth())
         
-        ttk.Label(btn_frame, text="Colormap:").pack(side=tk.LEFT, padx=(10, 2))
+        ttk.Label(row2, text="Colormap:").pack(side=tk.LEFT, padx=(10, 2))
         
         self.colormap_var = tk.StringVar(value="JET")
         colormap_combo = ttk.Combobox(
-            btn_frame,
+            row2,
             textvariable=self.colormap_var,
             values=["JET", "VIRIDIS", "MAGMA", "INFERNO", "PLASMA", "CIVIDIS"],
             width=8,
