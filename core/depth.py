@@ -9,11 +9,13 @@ def normalize_stereo_pair(
     right_image: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Convert stereo pair to grayscale and apply min-max normalization.
+    Normalize brightness and contrast of stereo image pair.
     
-    Both images are converted to grayscale (if needed), then normalized
-    to 0-255 range using their combined min/max values for consistent
-    intensity ranges.
+    Applies a two-stage normalization:
+    1. Global mean-variance matching (affine transform)
+    2. CLAHE for local illumination variations
+    
+    Works with both grayscale and color images.
     
     Args:
         left_image: Left image (grayscale or BGR color)
@@ -22,24 +24,45 @@ def normalize_stereo_pair(
     Returns:
         Tuple of (left_normalized, right_normalized) as uint8 grayscale
     """
-    if len(left_image.shape) == 3:
-        left_gray = cv2.cvtColor(left_image, cv2.COLOR_BGR2GRAY)
+    is_color = len(left_image.shape) == 3
+    
+    if is_color:
+        left_lab = cv2.cvtColor(left_image, cv2.COLOR_BGR2LAB).astype(np.float32)
+        right_lab = cv2.cvtColor(right_image, cv2.COLOR_BGR2LAB).astype(np.float32)
+        left_l = left_lab[:, :, 0]
+        right_l = right_lab[:, :, 0]
     else:
-        left_gray = left_image
+        left_l = left_image.astype(np.float32)
+        right_l = right_image.astype(np.float32)
     
-    if len(right_image.shape) == 3:
-        right_gray = cv2.cvtColor(right_image, cv2.COLOR_BGR2GRAY)
-    else:
-        right_gray = right_image
+    left_mean, left_std = cv2.meanStdDev(left_l)
+    right_mean, right_std = cv2.meanStdDev(right_l)
     
-    combined_min = min(left_gray.min(), right_gray.min())
-    combined_max = max(left_gray.max(), right_gray.max())
+    left_mean = left_mean[0][0]
+    left_std = left_std[0][0]
+    right_mean = right_mean[0][0]
+    right_std = right_std[0][0]
     
-    if combined_max > combined_min:
-        left_gray = ((left_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
-        right_gray = ((right_gray - combined_min) / (combined_max - combined_min) * 255).astype(np.uint8)
+    target_mean = (left_mean + right_mean) / 2.0
+    target_std = (left_std + right_std) / 2.0
     
-    return left_gray, right_gray
+    def match_stats(img, img_mean, img_std):
+        if img_std > 0:
+            normalized = (img - img_mean) / img_std * target_std + target_mean
+        else:
+            normalized = img - img_mean + target_mean
+        normalized = np.clip(normalized, 0, 255).astype(np.uint8)
+        return normalized
+    
+    left_matched = match_stats(left_l, left_mean, left_std)
+    right_matched = match_stats(right_l, right_mean, right_std)
+    
+    clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(16, 16))
+    
+    left_clahe = clahe.apply(left_matched)
+    right_clahe = clahe.apply(right_matched)
+    
+    return left_clahe, right_clahe
 
 
 @dataclass
