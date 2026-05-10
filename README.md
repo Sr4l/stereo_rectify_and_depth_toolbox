@@ -83,12 +83,12 @@ This toolbox helps you:
 
 6. **Optional: Install PyTorch for RAFT-Stereo support**
     ```bash
-    # CPU-only version (slower inference)
-    pip install torch torchvision
+    # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
+    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
     
-    # GPU version (recommended, requires CUDA)
+    # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
     # Visit https://pytorch.org for CUDA-specific installation commands
-    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+    pip install torch torchvision
     ```
 
 7. **Optional: Download pretrained RAFT-Stereo model**
@@ -138,10 +138,10 @@ This toolbox helps you:
 
 6. **Optional: Install PyTorch for RAFT-Stereo support**
     ```cmd
-    # CPU-only version (slower inference)
+    # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
     pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
     
-    # CPU & GPU version (recommended, requires CUDA)
+    # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
     # Visit https://pytorch.org for CUDA-specific installation commands
     pip install torch torchvision
     ```
@@ -187,11 +187,12 @@ This toolbox helps you:
 
 5. **Optional: Install PyTorch for RAFT-Stereo support**
     ```bash
-    # CPU-only version
-    pip install torch torchvision
+    # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
+    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
     
-    # GPU version (recommended)
-    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+    # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
+    # Visit https://pytorch.org for CUDA-specific installation commands
+    pip install torch torchvision
     ```
 
 6. **Optional: Download pretrained RAFT-Stereo model**
@@ -203,36 +204,6 @@ This toolbox helps you:
     ```bash
     python main.py
     ```
-
-## RAFT-Stereo Setup
-
-RAFT-Stereo is included as a git submodule. To use the deep learning-based stereo matching:
-
-### 1. Initialize the submodule
-
-If you haven't initialized the submodule during installation:
-
-```bash
-git submodule update --init --recursive
-```
-
-This clones the RAFT-Stereo repository from https://github.com/princeton-vl/RAFT-Stereo.git into the `core/RAFT-Stereo/` directory.
-
-**Note**: If you cloned without `--recursive`, initialize the submodule with the command above.
-
-### 2. Install PyTorch dependencies
-
-```bash
-pip install torch torchvision gdown
-```
-
-### 3. Download pretrained model
-
-```bash
-python scripts/download_raft_models.py --model middlebury
-```
-
-Available models: middlebury (recommended), eth3d, sceneflow, realtime
 
 ## Usage
 
@@ -483,11 +454,11 @@ brew install python-tk
 If you select RAFT algorithm and see an error about PyTorch:
 
 ```bash
-# Install PyTorch (CPU version)
-pip install torch torchvision
+# Install PyTorch (CPU version, smaller, slower, no NVidia GPU needed)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 # Install PyTorch (GPU version, recommended)
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+pip install torch torchvision
 ```
 
 After installation, restart the application and RAFT will be available.
