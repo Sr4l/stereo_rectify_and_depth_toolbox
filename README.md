@@ -61,7 +61,12 @@ This toolbox helps you:
    cd stereo_rectify_and_depth_toolbox
    ```
 
-3. **Create virtual environment:**
+3. **Initialize RAFT-Stereo submodule:**
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+4. **Create virtual environment:**
    ```bash
    python3.11 -m venv venv
    ```
@@ -111,7 +116,12 @@ This toolbox helps you:
    cd stereo_rectify_and_depth_toolbox
    ```
 
-3. **Create virtual environment:**
+3. **Initialize RAFT-Stereo submodule:**
+   ```cmd
+   git submodule update --init --recursive
+   ```
+
+4. **Create virtual environment:**
    ```cmd
    py -3.11 -m venv venv
    ```
@@ -159,7 +169,12 @@ This toolbox helps you:
    cd stereo_rectify_and_depth_toolbox
    ```
 
-3. **Create and activate virtual environment:**
+3. **Initialize RAFT-Stereo submodule:**
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+4. **Create and activate virtual environment:**
    ```bash
    python3.11 -m venv venv
    source venv/bin/activate
@@ -188,6 +203,36 @@ This toolbox helps you:
     ```bash
     python main.py
     ```
+
+## RAFT-Stereo Setup
+
+RAFT-Stereo is included as a git submodule. To use the deep learning-based stereo matching:
+
+### 1. Initialize the submodule
+
+If you haven't initialized the submodule during installation:
+
+```bash
+git submodule update --init --recursive
+```
+
+This clones the RAFT-Stereo repository from https://github.com/princeton-vl/RAFT-Stereo.git into the `core/RAFT-Stereo/` directory.
+
+**Note**: If you cloned without `--recursive`, initialize the submodule with the command above.
+
+### 2. Install PyTorch dependencies
+
+```bash
+pip install torch torchvision gdown
+```
+
+### 3. Download pretrained model
+
+```bash
+python scripts/download_raft_models.py --model middlebury
+```
+
+Available models: middlebury (recommended), eth3d, sceneflow, realtime
 
 ## Usage
 

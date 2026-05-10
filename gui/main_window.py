@@ -33,10 +33,11 @@ class StereoCalibrationGUI:
         self.depth_debounce_id = None
         
         try:
-            from core.depth import TORCH_AVAILABLE
-            self.raft_available = TORCH_AVAILABLE
+            from core.raft_stereo_check import check_raft_available
+            self.raft_available, self.raft_unavailable_reason = check_raft_available()
         except:
             self.raft_available = False
+            self.raft_unavailable_reason = "Unknown error"
         
         self._setup_styles()
         self._create_ui()
@@ -286,7 +287,7 @@ class StereoCalibrationGUI:
         if self.raft_available:
             algo_tooltip = "  BM: Fast | SGBM: Better | RAFT: DL SOTA"
         else:
-            algo_tooltip = "  BM: Fast | SGBM: Better | RAFT: Requires PyTorch (not installed)"
+            algo_tooltip = f"  BM: Fast | SGBM: Better | RAFT: {self.raft_unavailable_reason}"
         
         algo_combo = ttk.Combobox(
             frame,
@@ -764,12 +765,56 @@ class StereoCalibrationGUI:
         
         dialog.wait_window()
     
+    def _show_raft_submodule_error(self):
+        """Show error dialog for uninitialized RAFT-Stereo submodule."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("RAFT-Stereo Submodule Not Initialized")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        dialog_width = 800
+        dialog_height = 280
+        x = (self.root.winfo_screenwidth() - dialog_width) // 2
+        y = (self.root.winfo_screenheight() - dialog_height) // 2
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        dialog.resizable(False, False)
+        
+        message = (
+            f"RAFT-Stereo submodule is not initialized.\n\n"
+            f"Reason: {self.raft_unavailable_reason}\n\n"
+            f"To fix this, run the following command in your terminal:\n\n"
+            f"  git submodule update --init --recursive\n\n"
+            f"This will download the RAFT-Stereo code from GitHub.\n\n"
+            f"Switching to BM algorithm."
+        )
+        
+        msg_label = tk.Label(
+            dialog,
+            text=message,
+            justify=tk.LEFT,
+            anchor='w',
+            wraplength=750,
+            padx=20,
+            pady=20,
+            font=('Arial', 11)
+        )
+        msg_label.pack(fill=tk.BOTH)
+        
+        ok_btn = ttk.Button(dialog, text="OK", command=dialog.destroy)
+        ok_btn.pack(pady=(0, 15))
+        
+        dialog.wait_window()
+    
     def _on_algorithm_change(self):
         """Handle algorithm change."""
         algo = self.algorithm_var.get()
         
         if algo == 'RAFT' and not self.raft_available:
-            self._show_raft_error()
+            # Check if it's a submodule issue vs PyTorch issue
+            if "submodule" in self.raft_unavailable_reason.lower() or "not found" in self.raft_unavailable_reason.lower():
+                self._show_raft_submodule_error()
+            else:
+                self._show_raft_error()  # Existing PyTorch error dialog
             self.algorithm_var.set("BM")
             algo = "BM"
         
