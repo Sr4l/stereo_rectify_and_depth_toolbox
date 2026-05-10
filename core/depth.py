@@ -106,7 +106,7 @@ class RAFTStereoParams:
     n_downsample: int = 2
     context_norm: str = "batch"
     shared_backbone: bool = False
-    slow_fast_gru: bool = False
+    slow_fast_gru: bool = True
     corr_implementation: str = "reg"
     valid_iters: int = 32
     mixed_precision: bool = False
@@ -437,7 +437,7 @@ class DepthEstimator:
             if torch.cuda.is_available():
                 disparity = disparity.cpu()
             
-            self.disparity = disparity.numpy().astype(np.float32)
+            self.disparity = (-disparity).numpy().astype(np.float32)
             return self.disparity
             
         except Exception as e:
