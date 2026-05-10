@@ -827,9 +827,23 @@ class StereoCalibrationGUI:
                     from core.depth import TORCH_AVAILABLE
                     if not TORCH_AVAILABLE:
                         self.status_var.set("Error: PyTorch not installed. Cannot use RAFT-Stereo.")
+                        messagebox.showerror("Error", "PyTorch not installed.\n\nPlease install PyTorch:\npip install torch torchvision")
                         return
                 except:
                     self.status_var.set("Error: Cannot check PyTorch availability.")
+                    return
+                
+                # Check if model file exists before trying to compute
+                import os
+                if not os.path.exists(model_path):
+                    self.status_var.set("Error: RAFT model not found")
+                    messagebox.showerror(
+                        "Model Not Found",
+                        f"RAFT-Stereo model file not found:\n{model_path}\n\n"
+                        f"Please download a model using:\n"
+                        f"  • The 'Download...' button in the RAFT panel\n"
+                        f"  • Or run: python scripts/download_raft_models.py --model middlebury"
+                    )
                     return
                 
                 disparity = self.depth_estimator.compute_disparity_raft(

@@ -203,6 +203,16 @@ class DepthEstimator:
         if not TORCH_AVAILABLE:
             raise ImportError("PyTorch not installed. Install with: pip install torch torchvision")
         
+        # Check if model file exists
+        import os as _os
+        if not _os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"RAFT-Stereo model file not found: {model_path}\n\n"
+                f"Please download a model using:\n"
+                f"  python scripts/download_raft_models.py --model middlebury\n"
+                f"\nOr use the 'Download...' button in the GUI."
+            )
+        
         try:
             import sys
             import os
