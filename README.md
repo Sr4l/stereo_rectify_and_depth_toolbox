@@ -518,7 +518,39 @@ This was a bug in earlier versions. Make sure you have the latest version where 
 
 ## License
 
-BSD 3-Clause License
+This toolbox is released under the BSD 3-Clause License.
+
+### RAFT-Stereo License
+This toolbox incorporates RAFT-Stereo code and pretrained models from the Princeton Vision & Learning Lab. We thank the authors for making their excellent work available to the research community.
+
+RAFT-Stereo is released under the MIT License.
+
+**Source:** Princeton Vision & Learning Lab  
+**Repository:** https://github.com/princeton-vl/RAFT-Stereo.git  
+**Paper:** "RAFT-Stereo: Multilevel Recurrent Field Transforms for Stereo Matching" (3DV 2021, Best Student Paper Award)  
+**ArXiv:** https://arxiv.org/pdf/2109.07547.pdf
+
+### Pretrained Models
+The pretrained RAFT-Stereo models are provided by Princeton Vision & Learning Lab for research and educational purposes.
+
+| Model | File | Description | Best Use Case |
+|-------|------|-------------|---------------|
+| **Middlebury** | `raftstereo-middlebury.pth` | Trained on Middlebury dataset | General purpose, in-the-wild images (RECOMMENDED) |
+| **ETH3D** | `raftstereo-eth3d.pth` | Trained on ETH3D dataset | High-resolution stereo imagery |
+| **SceneFlow** | `raftstereo-sceneflow.pth` | Trained on SceneFlow (FlyingThings3D, Driving, Monkaa) | Synthetic scenes, research |
+| **Realtime** | `raftstereo-realtime.pth` | Optimized for speed | Real-time applications, lower latency requirements |
+
+**Download:** Models can be downloaded using the included script:
+```bash
+python scripts/download_raft_models.py --model <model_name>
+```
+
+Or manually from the official Google Drive folder:  
+https://drive.google.com/drive/folders/1booUFYEXmsdombVuglatP0nZXb5qI89J
+
+**Model Usage:**
+- All models are provided under the MIT License
+- For best accuracy, use the **middlebury** model
 
 ## Contributing
 
