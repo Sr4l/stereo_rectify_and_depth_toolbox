@@ -225,6 +225,8 @@ class StereoCalibrationGUI:
         right_frame.grid_rowconfigure(1, weight=0)
         right_frame.grid_rowconfigure(2, weight=0)
         right_frame.grid_rowconfigure(3, weight=0)
+        right_frame.grid_rowconfigure(4, weight=0)
+        right_frame.grid_rowconfigure(5, weight=0)
         right_frame.grid_columnconfigure(0, weight=1)
         
         depth_frame = ttk.LabelFrame(right_frame, text="Depth Map / Disparity")
@@ -261,7 +263,7 @@ class StereoCalibrationGUI:
         self._update_algorithm_visibility()
         
         vis_frame = ttk.LabelFrame(right_frame, text="Visualization Controls")
-        vis_frame.grid(row=4, column=0, sticky='ew', padx=2, pady=5)
+        vis_frame.grid(row=5, column=0, sticky='ew', padx=2, pady=5)
         
         self._create_visualization_controls(vis_frame)
     
