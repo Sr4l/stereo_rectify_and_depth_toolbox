@@ -36,7 +36,6 @@ class CameraParamPanel(ttk.LabelFrame):
         frame = ttk.LabelFrame(parent, text="Intrinsic Matrix K")
         frame.pack(fill=tk.X, pady=5)
         
-        labels = ['fx', 'fy', 'cx', 'cy']
         self.entries['K'] = []
         
         for i in range(3):
@@ -47,14 +46,6 @@ class CameraParamPanel(ttk.LabelFrame):
             for j in range(3):
                 cell_frame = ttk.Frame(row_frame)
                 cell_frame.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=2)
-                
-                if i == j:
-                    label_text = labels[i] if i < len(labels) else f'k{i+1}'
-                else:
-                    label_text = ''
-                
-                label = ttk.Label(cell_frame, text=label_text, width=4)
-                label.pack(side=tk.LEFT)
                 
                 entry = ttk.Entry(cell_frame, width=10)
                 entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -72,25 +63,30 @@ class CameraParamPanel(ttk.LabelFrame):
         frame = ttk.LabelFrame(parent, text="Distortion Coefficients")
         frame.pack(fill=tk.X, pady=5)
         
-        dist_frame = ttk.Frame(frame)
-        dist_frame.pack(fill=tk.X, pady=5)
-        
         dist_labels = ['k1', 'k2', 'p1', 'p2', 'k3']
         self.dist_entries = {}
         
-        for i, label in enumerate(dist_labels):
-            cell_frame = ttk.Frame(dist_frame)
-            cell_frame.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=2)
+        for row_idx in range(2):
+            row_frame = ttk.Frame(frame)
+            row_frame.pack(fill=tk.X, pady=2)
             
-            lbl = ttk.Label(cell_frame, text=label, width=4)
-            lbl.pack(side=tk.LEFT)
+            start_idx = row_idx * 3
+            end_idx = min((row_idx + 1) * 3, len(dist_labels))
             
-            entry = ttk.Entry(cell_frame, width=10)
-            entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-            entry.bind('<FocusOut>', lambda e, cb=self.on_change: self._on_entry_change(cb))
-            entry.bind('<Return>', lambda e, cb=self.on_change: self._on_entry_change(cb))
-            
-            self.dist_entries[label] = entry
+            for i in range(start_idx, end_idx):
+                label = dist_labels[i]
+                cell_frame = ttk.Frame(row_frame)
+                cell_frame.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=2)
+                
+                lbl = ttk.Label(cell_frame, text=label, width=4)
+                lbl.pack(side=tk.LEFT)
+                
+                entry = ttk.Entry(cell_frame, width=10)
+                entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+                entry.bind('<FocusOut>', lambda e, cb=self.on_change: self._on_entry_change(cb))
+                entry.bind('<Return>', lambda e, cb=self.on_change: self._on_entry_change(cb))
+                
+                self.dist_entries[label] = entry
         
         self._set_default_distortion()
     
