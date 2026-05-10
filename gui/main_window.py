@@ -32,6 +32,12 @@ class StereoCalibrationGUI:
         self.update_debounce_id = None
         self.depth_debounce_id = None
         
+        try:
+            from core.depth import TORCH_AVAILABLE
+            self.raft_available = TORCH_AVAILABLE
+        except:
+            self.raft_available = False
+        
         self._setup_styles()
         self._create_ui()
         self._bind_events()
@@ -276,20 +282,11 @@ class StereoCalibrationGUI:
         
         self.algorithm_var = tk.StringVar(value="BM")
         
-        # Check if RAFT-Stereo is available
-        try:
-            from core.depth import TORCH_AVAILABLE
-            from core.raft_stereo_check import check_raft_available
-            raft_available = check_raft_available()
-        except:
-            raft_available = False
-        
-        if raft_available:
-            algo_values = ["BM", "SGBM", "RAFT"]
+        algo_values = ["BM", "SGBM", "RAFT"]
+        if self.raft_available:
             algo_tooltip = "  BM: Fast | SGBM: Better | RAFT: DL SOTA"
         else:
-            algo_values = ["BM", "SGBM"]
-            algo_tooltip = "  BM: Fast | SGBM: Better (install torch for RAFT)"
+            algo_tooltip = "  BM: Fast | SGBM: Better | RAFT: Requires PyTorch (not installed)"
         
         algo_combo = ttk.Combobox(
             frame,
@@ -732,6 +729,18 @@ class StereoCalibrationGUI:
     def _on_algorithm_change(self):
         """Handle algorithm change."""
         algo = self.algorithm_var.get()
+        
+        if algo == 'RAFT' and not self.raft_available:
+            messagebox.showerror(
+                "PyTorch Not Installed",
+                "RAFT-Stereo requires PyTorch which is not installed.\n\n"
+                "Please install PyTorch:\n"
+                "  pip install torch torchvision\n\n"
+                "Switching to BM algorithm."
+            )
+            self.algorithm_var.set("BM")
+            algo = "BM"
+        
         self.depth_estimator.set_algorithm(algo)
         
         self._update_algorithm_visibility()
