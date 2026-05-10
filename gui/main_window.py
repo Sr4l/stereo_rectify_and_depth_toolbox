@@ -726,18 +726,50 @@ class StereoCalibrationGUI:
         except Exception as e:
             messagebox.showerror("Error", f"Download failed: {str(e)}")
     
+    def _show_raft_error(self):
+        """Show custom wide error dialog for missing PyTorch."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("PyTorch Not Installed")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        dialog_width = 800
+        dialog_height = 320
+        x = (self.root.winfo_screenwidth() - dialog_width) // 2
+        y = (self.root.winfo_screenheight() - dialog_height) // 2
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        dialog.resizable(False, False)
+        
+        message = (
+            "RAFT-Stereo requires PyTorch which is not installed.\n\n"
+            "Please install PyTorch:\n"
+            "  pip install torch torchvision\n\n"
+            "Switching to BM algorithm."
+        )
+        
+        msg_label = tk.Label(
+            dialog,
+            text=message,
+            justify=tk.LEFT,
+            anchor='w',
+            wraplength=750,
+            padx=20,
+            pady=20,
+            font=('Arial', 11)
+        )
+        msg_label.pack(fill=tk.BOTH)
+        
+        ok_btn = ttk.Button(dialog, text="OK", command=dialog.destroy)
+        ok_btn.pack(pady=(0, 15))
+        
+        dialog.wait_window()
+    
     def _on_algorithm_change(self):
         """Handle algorithm change."""
         algo = self.algorithm_var.get()
         
         if algo == 'RAFT' and not self.raft_available:
-            messagebox.showerror(
-                "PyTorch Not Installed",
-                "RAFT-Stereo requires PyTorch which is not installed.\n\n"
-                "Please install PyTorch:\n"
-                "  pip install torch torchvision\n\n"
-                "Switching to BM algorithm."
-            )
+            self._show_raft_error()
             self.algorithm_var.set("BM")
             algo = "BM"
         
