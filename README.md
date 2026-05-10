@@ -52,7 +52,7 @@ This toolbox helps you:
 1. **Install system dependencies:**
    ```bash
    sudo apt update
-   sudo apt install python3.11-venv python3.11-tk
+   sudo apt install python3-venv python3-tk
    ```
 
 2. **Clone the repository:**
@@ -68,7 +68,7 @@ This toolbox helps you:
 
 4. **Create virtual environment:**
    ```bash
-   python3.11 -m venv venv
+   python3 -m venv venv
    ```
 
 4. **Activate virtual environment:**
@@ -176,7 +176,7 @@ This toolbox helps you:
 
 4. **Create and activate virtual environment:**
    ```bash
-   python3.11 -m venv venv
+   python3 -m venv venv
    source venv/bin/activate
    ```
 
