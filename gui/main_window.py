@@ -253,6 +253,11 @@ class StereoCalibrationGUI:
         
         self._create_sgbm_controls(self.sgbm_frame)
         
+        self.raft_frame = ttk.LabelFrame(right_frame, text="RAFT-Stereo Parameters")
+        self.raft_frame.grid(row=4, column=0, sticky='ew', padx=2, pady=5)
+        
+        self._create_raft_controls(self.raft_frame)
+        
         self._update_algorithm_visibility()
         
         vis_frame = ttk.LabelFrame(right_frame, text="Visualization Controls")
@@ -268,18 +273,33 @@ class StereoCalibrationGUI:
         ttk.Label(frame, text="Algorithm:").pack(side=tk.LEFT, padx=2)
         
         self.algorithm_var = tk.StringVar(value="BM")
+        
+        # Check if RAFT-Stereo is available
+        try:
+            from core.depth import TORCH_AVAILABLE
+            from core.raft_stereo_check import check_raft_available
+            raft_available = check_raft_available()
+        except:
+            raft_available = False
+        
+        if raft_available:
+            algo_values = ["BM", "SGBM", "RAFT"]
+            algo_tooltip = "  BM: Fast | SGBM: Better | RAFT: DL SOTA"
+        else:
+            algo_values = ["BM", "SGBM"]
+            algo_tooltip = "  BM: Fast | SGBM: Better (install torch for RAFT)"
+        
         algo_combo = ttk.Combobox(
             frame,
             textvariable=self.algorithm_var,
-            values=["BM", "SGBM"],
+            values=algo_values,
             width=10,
             state="readonly"
         )
         algo_combo.pack(side=tk.LEFT, padx=2)
         algo_combo.bind('<<ComboboxSelected>>', lambda e: self._on_algorithm_change())
         
-        ttk.Label(frame, text="  BM: Fast, good for texture-rich scenes").pack(side=tk.LEFT, padx=5)
-        ttk.Label(frame, text="SGBM: Slower, better quality").pack(side=tk.LEFT, padx=5)
+        ttk.Label(frame, text=algo_tooltip).pack(side=tk.LEFT, padx=5)
     
     def _create_bm_controls(self, parent):
         """Create StereoBM parameter controls."""
@@ -365,6 +385,68 @@ class StereoCalibrationGUI:
             
             value_label = ttk.Label(frame, textvariable=var, width=6, font=('Arial', 11, 'bold'))
             value_label.grid(row=0, column=2, sticky='e')
+    
+    def _create_raft_controls(self, parent):
+        """Create RAFT-Stereo parameter controls."""
+        controls = [
+            ('valid_iters', 'Iters:', 1, 64, 1, 32),
+            ('n_downsample', 'Downsample:', 1, 3, 1, 2),
+        ]
+        
+        self.raft_vars = {}
+        self.raft_scales = {}
+        
+        for i, (key, label, from_val, to_val, step, default) in enumerate(controls):
+            row = i // 2
+            col = (i % 2) * 2
+            
+            frame = ttk.Frame(parent)
+            frame.grid(row=row, column=col, sticky='ew', padx=5, pady=8)
+            frame.columnconfigure(1, weight=1)
+            
+            ttk.Label(frame, text=label, width=12, font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky='w')
+            
+            var = tk.IntVar(value=default)
+            self.raft_vars[key] = var
+            
+            scale = ttk.Scale(
+                frame,
+                from_=from_val,
+                to=to_val,
+                orient=tk.HORIZONTAL,
+                variable=var,
+                command=lambda v, k=key: self._on_raft_param_change(k)
+            )
+            scale.grid(row=1, column=0, columnspan=3, sticky='ew', padx=5, pady=(0, 5))
+            self.raft_scales[key] = scale
+            
+            value_label = ttk.Label(frame, textvariable=var, width=6, font=('Arial', 11, 'bold'))
+            value_label.grid(row=0, column=2, sticky='e')
+        
+        # Model path with browse and download
+        model_frame = ttk.Frame(parent)
+        model_frame.grid(row=2, column=0, columnspan=4, sticky='ew', padx=5, pady=8)
+        
+        ttk.Label(model_frame, text="Model Path:", width=12, font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky='w')
+        
+        self.raft_model_var = tk.StringVar(value="models/raftstereo-middlebury.pth")
+        model_entry = ttk.Entry(model_frame, textvariable=self.raft_model_var, width=45)
+        model_entry.grid(row=0, column=1, sticky='ew', padx=5)
+        
+        browse_btn = ttk.Button(model_frame, text="Browse...", command=self._browse_raft_model, width=8)
+        browse_btn.grid(row=0, column=2, padx=2)
+        
+        download_btn = ttk.Button(model_frame, text="Download...", command=self._download_raft_model, width=10)
+        download_btn.grid(row=0, column=3, padx=2)
+        
+        # Info label
+        info_label = ttk.Label(
+            parent,
+            text="Note: GPU recommended. First load may take time. Install PyTorch for RAFT support.",
+            font=('Arial', 9),
+            foreground='yellow'
+        )
+        info_label.grid(row=3, column=0, columnspan=4, padx=5, pady=5)
     
     def _create_visualization_controls(self, parent):
         """Create visualization control widgets."""
@@ -543,6 +625,108 @@ class StereoCalibrationGUI:
         """Toggle epipolar lines display."""
         self._update_rectification()
     
+    def _browse_raft_model(self):
+        """Browse for RAFT-Stereo model checkpoint."""
+        file_path = filedialog.askopenfilename(
+            title="Select RAFT-Stereo Model",
+            filetypes=[("PyTorch models", "*.pth"), ("All files", "*.*")]
+        )
+        
+        if file_path:
+            self.raft_model_var.set(file_path)
+    
+    def _download_raft_model(self):
+        """Download pretrained RAFT-Stereo model."""
+        try:
+            from core.depth import TORCH_AVAILABLE
+            if not TORCH_AVAILABLE:
+                messagebox.showerror("Error", "PyTorch not installed. Please install PyTorch first:\n\npip install torch torchvision")
+                return
+        except:
+            messagebox.showerror("Error", "Cannot check PyTorch availability.")
+            return
+        
+        # Create custom dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Download RAFT-Stereo Model")
+        dialog.geometry("450x250")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        ttk.Label(dialog, text="Select model to download:", font=('Arial', 11, 'bold')).pack(pady=10)
+        
+        model_info = {
+            'middlebury': 'Middlebury - Best for in-the-wild images (RECOMMENDED)',
+            'eth3d': 'ETH3D - High resolution stereo',
+            'sceneflow': 'SceneFlow - General purpose (FlyingThings3D)',
+            'realtime': 'Realtime - Fastest model'
+        }
+        
+        selected = tk.StringVar(value='middlebury')
+        
+        for key, desc in model_info.items():
+            frame = ttk.Frame(dialog)
+            frame.pack(anchor='w', padx=20, pady=2)
+            ttk.Radiobutton(frame, text=desc, variable=selected, value=key).pack(side=tk.LEFT)
+        
+        result = {'choice': None}
+        
+        def on_download():
+            result['choice'] = selected.get()
+            dialog.destroy()
+        
+        def on_cancel():
+            result['choice'] = None
+            dialog.destroy()
+        
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=20)
+        
+        ttk.Button(btn_frame, text="Download", command=on_download).pack(side=tk.LEFT, padx=10)
+        ttk.Button(btn_frame, text="Cancel", command=on_cancel).pack(side=tk.LEFT, padx=10)
+        
+        dialog.wait_window()
+        
+        if result['choice']:
+            self._download_raft_model_script(result['choice'])
+    
+    def _download_raft_model_script(self, model_name):
+        """Run download script for RAFT-Stereo model."""
+        import subprocess
+        import os
+        
+        models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
+        os.makedirs(models_dir, exist_ok=True)
+        
+        try:
+            script_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                'scripts',
+                'download_raft_models.py'
+            )
+            
+            result = subprocess.run(
+                ['python', script_path, '--model', model_name, '--output', models_dir],
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            
+            if result.returncode == 0:
+                model_file = f"raftstereo-{model_name}.pth"
+                self.raft_model_var.set(os.path.join(models_dir, model_file))
+                messagebox.showinfo(
+                    "Success",
+                    f"Model downloaded successfully!\n\nSaved to: {os.path.join(models_dir, model_file)}"
+                )
+            else:
+                messagebox.showerror("Error", f"Download failed:\n{result.stderr}")
+        
+        except subprocess.TimeoutExpired:
+            messagebox.showerror("Error", "Download timed out. Please try again or download manually.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Download failed: {str(e)}")
+    
     def _on_algorithm_change(self):
         """Handle algorithm change."""
         algo = self.algorithm_var.get()
@@ -553,6 +737,9 @@ class StereoCalibrationGUI:
         if algo == 'SGBM':
             params = {key: var.get() for key, var in self.sgbm_vars.items()}
             self.depth_estimator.set_sgbm_params(**params)
+        elif algo == 'RAFT':
+            params = {key: var.get() for key, var in self.raft_vars.items()}
+            self.depth_estimator.set_raft_params(**params)
         else:
             params = {key: var.get() for key, var in self.bm_vars.items()}
             self.depth_estimator.set_bm_params(**params)
@@ -566,9 +753,15 @@ class StereoCalibrationGUI:
         if algo == 'BM':
             self.bm_frame.grid()
             self.sgbm_frame.grid_remove()
-        else:
+            self.raft_frame.grid_remove()
+        elif algo == 'SGBM':
             self.bm_frame.grid_remove()
             self.sgbm_frame.grid()
+            self.raft_frame.grid_remove()
+        elif algo == 'RAFT':
+            self.bm_frame.grid_remove()
+            self.sgbm_frame.grid_remove()
+            self.raft_frame.grid()
     
     def _on_bm_param_change(self, key):
         """Handle BM parameter change with debouncing."""
@@ -583,6 +776,16 @@ class StereoCalibrationGUI:
     def _on_sgbm_param_change(self, key):
         """Handle SGBM parameter change with debouncing."""
         if self.algorithm_var.get() != 'SGBM':
+            return
+        
+        if self.depth_debounce_id:
+            self.root.after_cancel(self.depth_debounce_id)
+        
+        self.depth_debounce_id = self.root.after(300, self._update_depth)
+    
+    def _on_raft_param_change(self, key):
+        """Handle RAFT parameter change with debouncing."""
+        if self.algorithm_var.get() != 'RAFT':
             return
         
         if self.depth_debounce_id:
@@ -613,6 +816,26 @@ class StereoCalibrationGUI:
                 disparity = self.depth_estimator.compute_disparity_sgbm(
                     self.rectifier.rectified_left,
                     self.rectifier.rectified_right
+                )
+            elif algo == 'RAFT':
+                params = {key: var.get() for key, var in self.raft_vars.items()}
+                model_path = self.raft_model_var.get()
+                
+                self.depth_estimator.set_raft_params(**params)
+                
+                try:
+                    from core.depth import TORCH_AVAILABLE
+                    if not TORCH_AVAILABLE:
+                        self.status_var.set("Error: PyTorch not installed. Cannot use RAFT-Stereo.")
+                        return
+                except:
+                    self.status_var.set("Error: Cannot check PyTorch availability.")
+                    return
+                
+                disparity = self.depth_estimator.compute_disparity_raft(
+                    self.rectifier.rectified_left,
+                    self.rectifier.rectified_right,
+                    model_path=model_path
                 )
             else:
                 params = {key: var.get() for key, var in self.bm_vars.items()}

@@ -40,3 +40,5 @@ Thumbs.db
 # Project specific
 presets.json
 *.log
+models/*
+core/RAFT-Stereo
