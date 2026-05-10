@@ -129,11 +129,11 @@ This toolbox helps you:
 6. **Optional: Install PyTorch for RAFT-Stereo support**
     ```cmd
     # CPU-only version (slower inference)
-    pip install torch torchvision
+    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
     
-    # GPU version (recommended, requires CUDA)
+    # CPU & GPU version (recommended, requires CUDA)
     # Visit https://pytorch.org for CUDA-specific installation commands
-    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+    pip install torch torchvision
     ```
 
 7. **Optional: Download pretrained RAFT-Stereo model**
