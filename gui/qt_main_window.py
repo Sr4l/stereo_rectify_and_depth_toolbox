@@ -62,6 +62,21 @@ class StereoCalibrationGUI(QMainWindow):
             QMainWindow {
                 background-color: #1e1e1e;
             }
+            QGroupBox {
+                background-color: #1e1e1e;
+                color: #ffffff;
+                border: 1px solid #3c3c3c;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 15px;
+                font-weight: bold;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                color: #007acc;
+            }
             QLabel {
                 color: #ffffff;
                 background-color: #1e1e1e;
@@ -251,26 +266,16 @@ class StereoCalibrationGUI(QMainWindow):
         load_splitter = QHBoxLayout()
 
         # Left view
-        left_view = QVBoxLayout()
-        self._btn_load_left = QPushButton("Load Left Image")
-        self._btn_load_left.clicked.connect(self._load_left_image)
-        left_view.addWidget(self._btn_load_left)
-
-        self._left_thumbnail = ThumbnailPanel(self, "Left Preview", size=(140, 100))
-        left_view.addWidget(self._left_thumbnail)
-        load_splitter.addLayout(left_view)
+        self._left_thumbnail = ThumbnailPanel(self, "Left Camera Image", size=(400, 300), load_button_text="Load Left Image")
+        self._left_thumbnail.get_load_button().clicked.connect(self._load_left_image)
+        load_splitter.addWidget(self._left_thumbnail, 1)
 
         # Right view
-        right_view = QVBoxLayout()
-        self._btn_load_right = QPushButton("Load Right Image")
-        self._btn_load_right.clicked.connect(self._load_right_image)
-        right_view.addWidget(self._btn_load_right)
+        self._right_thumbnail = ThumbnailPanel(self, "Right Camera Image", size=(400, 300), load_button_text="Load Right Image")
+        self._right_thumbnail.get_load_button().clicked.connect(self._load_right_image)
+        load_splitter.addWidget(self._right_thumbnail, 1)
 
-        self._right_thumbnail = ThumbnailPanel(self, "Right Preview", size=(140, 100))
-        right_view.addWidget(self._right_thumbnail)
-        load_splitter.addLayout(right_view)
-
-        layout.addLayout(load_splitter)
+        layout.addLayout(load_splitter, 1)
 
         # Rectified images group
         rect_group = QGroupBox("Rectified Views")
@@ -309,7 +314,7 @@ class StereoCalibrationGUI(QMainWindow):
         options_row.addWidget(self._btn_save_rectified)
 
         rect_layout.addLayout(options_row)
-        layout.addWidget(rect_group, 2)
+        layout.addWidget(rect_group, 1)
 
         return panel
 

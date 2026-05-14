@@ -470,6 +470,7 @@ class ThumbnailPanel(QWidget):
         parent: QWidget = None,
         title: str = "Preview",
         size: tuple = (200, 150),
+        load_button_text: str = "Load Image",
     ):
         super().__init__(parent)
         self._image: Optional[np.ndarray] = None
@@ -478,26 +479,48 @@ class ThumbnailPanel(QWidget):
         self._graphics_view: Optional[QGraphicsView] = None
         self._scene: Optional[QGraphicsScene] = None
         self._pixmap_item: Optional[QGraphicsPixmapItem] = None
+        self._load_button: Optional[QPushButton] = None
 
         self._apply_style()
-        self._create_widgets()
+        self._create_widgets(load_button_text)
 
-    def _create_widgets(self):
+    def _create_widgets(self, load_button_text: str):
         """Create the thumbnail widget hierarchy."""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         self._group_box = QGroupBox(self._title)
+        # Set bold font on the group box title
+        font = QFont()
+        font.setBold(True)
+        self._group_box.setFont(font)
         group_layout = QVBoxLayout(self._group_box)
         group_layout.setContentsMargins(5, 5, 5, 5)
+
+        # Load button at the top
+        self._load_button = QPushButton(load_button_text)
+        self._load_button.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(14, 99, 156, 180);
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 3px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: rgba(17, 119, 187, 200);
+            }
+        """)
+        group_layout.addWidget(self._load_button)
 
         self._graphics_view = QGraphicsView()
         self._graphics_view.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         self._graphics_view.setBackgroundBrush(QColor(43, 43, 43))
-        self._graphics_view.setFixedWidth(self._size[0])
-        self._graphics_view.setFixedHeight(self._size[1])
         self._graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._graphics_view.setMinimumHeight(150)
 
         self._scene = QGraphicsScene()
         self._graphics_view.setScene(self._scene)
@@ -505,6 +528,10 @@ class ThumbnailPanel(QWidget):
 
         group_layout.addWidget(self._graphics_view)
         main_layout.addWidget(self._group_box)
+
+    def get_load_button(self) -> Optional[QPushButton]:
+        """Return the load button so the main window can connect signals."""
+        return self._load_button
 
     def _apply_style(self):
         """Apply dark theme styling."""
@@ -522,6 +549,7 @@ class ThumbnailPanel(QWidget):
                 left: 8px;
                 padding: 0 3px;
                 color: #007acc;
+                font-weight: bold;
             }
             QGraphicsView {
                 background-color: #2b2b2b;
@@ -532,6 +560,8 @@ class ThumbnailPanel(QWidget):
     def set_image(self, image: np.ndarray):
         """Set the thumbnail image."""
         self._image = image
+        if self._load_button:
+            self._load_button.setVisible(image is not None)
         self._update_display()
 
     def _update_display(self):
@@ -550,13 +580,17 @@ class ThumbnailPanel(QWidget):
         qimg = numpy_to_qimage(self._image)
         pixmap = QPixmap.fromImage(qimg)
 
-        target_w = self._size[0]
-        target_h = self._size[1]
-        pixmap = pixmap.scaled(target_w, target_h, Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation)
+        if self._graphics_view is None:
+            self._pixmap_item = self._scene.addPixmap(pixmap)
+            return
+
+        viewport = self._graphics_view.viewport()
+        vw = viewport.width()
+        if vw > 0:
+            pixmap = pixmap.scaledToWidth(vw, Qt.TransformationMode.SmoothTransformation)
+            self._scene.setSceneRect(0, 0, vw, self._graphics_view.viewport().height())
 
         self._pixmap_item = self._scene.addPixmap(pixmap)
-        self._scene.setSceneRect(0, 0, target_w, target_h)
 
     def clear(self):
         """Clear the thumbnail."""
