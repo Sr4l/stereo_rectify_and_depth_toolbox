@@ -435,6 +435,19 @@ class StereoCalibrationGUI(QMainWindow):
         self._shared_zoom_slider.setValue(100)
         self._shared_zoom_locked = False
 
+    def _setup_custom_slider(self, slider, from_val: int, to_val: int):
+        """Configure slider for arrow key (+1) and mouse click (+5% of range) behavior.
+        
+        Args:
+            slider: QSlider instance to configure
+            from_val: Minimum value of the slider range
+            to_val: Maximum value of the slider range
+        """
+        slider.setSingleStep(1)  # Arrow keys: +/-1
+        range_size = to_val - from_val
+        page_step = max(1, int(0.05 * range_size))  # Mouse click: +/-5% of range (rounded up to at least 1)
+        slider.setPageStep(page_step)
+
     def _apply_zoom_to_all_panels(self):
         """Apply the shared zoom factor to all four image panels."""
         zoom_factor = self._shared_zoom_factor
@@ -512,11 +525,12 @@ class StereoCalibrationGUI(QMainWindow):
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setRange(from_val, to_val)
             slider.setValue(default)
-            slider.setSingleStep(step)
+            self._setup_custom_slider(slider, from_val, to_val)
             self._bm_sliders[key] = (slider, default)
             self._bm_frame.add_control(label, slider, default)
             slider.valueChanged.connect(lambda: self._on_bm_param_change(key))
         self._bm_frame.layout().addStretch()
+        self._bm_frame.add_hint("← → arrows: ±1  |  Click on track: ±5% of range")
         layout.addWidget(self._bm_frame.group)
 
         # SGBM controls
@@ -537,11 +551,12 @@ class StereoCalibrationGUI(QMainWindow):
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setRange(from_val, to_val)
             slider.setValue(default)
-            slider.setSingleStep(step)
+            self._setup_custom_slider(slider, from_val, to_val)
             self._sgbm_sliders[key] = (slider, default)
             self._sgbm_frame.add_control(label, slider, default)
             slider.valueChanged.connect(lambda: self._on_sgbm_param_change(key))
         self._sgbm_frame.layout().addStretch()
+        self._sgbm_frame.add_hint("← → arrows: ±1  |  Click on track: ±5% of range")
         layout.addWidget(self._sgbm_frame.group)
 
         # RAFT controls
@@ -555,11 +570,12 @@ class StereoCalibrationGUI(QMainWindow):
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setRange(from_val, to_val)
             slider.setValue(default)
-            slider.setSingleStep(step)
+            self._setup_custom_slider(slider, from_val, to_val)
             self._raft_sliders[key] = (slider, default)
             self._raft_frame.add_control(label, slider, default)
             slider.valueChanged.connect(lambda: self._on_raft_param_change(key))
         self._raft_frame.layout().addStretch()
+        self._raft_frame.add_hint("← → arrows: ±1  |  Click on track: ±5% of range")
 
         # Model path row
         model_row = QHBoxLayout()
@@ -1238,6 +1254,17 @@ class ParamControlsGroup:
     def layout(self) -> QVBoxLayout:
         """Return the internal layout."""
         return self._layout
+
+    def add_hint(self, hint_text: str):
+        """Add a hint label at the bottom explaining slider behavior."""
+        hint = QLabel(hint_text)
+        hint.setStyleSheet("""
+            color: #888888;
+            font-size: 8pt;
+            background-color: #1e1e1e;
+        """)
+        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._layout.addWidget(hint)
 
 
 def main():
