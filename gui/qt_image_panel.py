@@ -394,7 +394,7 @@ class ImagePanel(QWidget):
         font = QFont("Arial", 9)
         self._tooltip_item.setFont(font)
         try:
-            self._tooltip_item.setPlainText(text)
+            self._tooltip_item.setHtml(f"<span style='background-color: white; color: black; padding: 2px'>{text}</span>")
         except RuntimeError:
             self._tooltip_item = None
             return
