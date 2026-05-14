@@ -13,6 +13,28 @@ from PySide6.QtWidgets import (
     QScrollArea, QGridLayout, QFormLayout, QFrame, QApplication,
     QDialog, QRadioButton, QLineEdit
 )
+
+# Valid image extensions for cv2.imwrite
+_VALID_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif'}
+
+
+def _ensure_image_extension(file_path: str) -> str:
+    """Ensure file path has a valid image extension, defaulting to .png.
+
+    Parameters
+    ----------
+    file_path : str
+        The original file path.
+
+    Returns
+    -------
+    str
+        File path with a valid image extension.
+    """
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in _VALID_IMAGE_EXTENSIONS:
+        return file_path
+    return f"{file_path}.png"
 from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSettings
 from PySide6.QtGui import QAction, QKeySequence
 
@@ -1117,6 +1139,7 @@ class StereoCalibrationGUI(QMainWindow):
             "PNG files (*.png);;JPEG files (*.jpg)",
         )
         if left_path:
+            left_path = _ensure_image_extension(left_path)
             cv2.imwrite(left_path, self.rectifier.rectified_left)
 
         right_path, _ = QFileDialog.getSaveFileName(
@@ -1126,6 +1149,7 @@ class StereoCalibrationGUI(QMainWindow):
             "PNG files (*.png);;JPEG files (*.jpg)",
         )
         if right_path:
+            right_path = _ensure_image_extension(right_path)
             cv2.imwrite(right_path, self.rectifier.rectified_right)
             self._status_label.setText("Rectified images saved")
 
@@ -1143,6 +1167,7 @@ class StereoCalibrationGUI(QMainWindow):
         )
 
         if file_path:
+            file_path = _ensure_image_extension(file_path)
             colormap_name = self._colormap_combo.currentText()
             colormap_map = {
                 'JET': cv2.COLORMAP_JET,
