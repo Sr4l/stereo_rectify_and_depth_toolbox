@@ -125,7 +125,7 @@ class CameraParamPanel(QWidget):
             row_entries = []
             for j in range(3):
                 entry = QLineEdit()
-                entry.setFixedWidth(100)
+                entry.setFixedWidth(70)
                 entry.setText(str(defaults[i][j]))
                 entry.editingFinished.connect(self._on_param_change)
                 row_entries.append(entry)
@@ -179,7 +179,7 @@ class CameraParamPanel(QWidget):
             row_entries = []
             for j in range(3):
                 entry = QLineEdit()
-                entry.setFixedWidth(100)
+                entry.setFixedWidth(70)
                 entry.setText(str(r_defaults[i][j]))
                 entry.editingFinished.connect(self._on_param_change)
                 row_entries.append(entry)
