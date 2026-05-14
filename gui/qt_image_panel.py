@@ -82,6 +82,8 @@ class ImagePanel(QWidget):
         self._graphics_view.setBackgroundBrush(QColor(43, 43, 43))
         self._graphics_view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self._graphics_view.setMouseTracking(True)
+        self._graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self._scene = QGraphicsScene()
         self._graphics_view.setScene(self._scene)
@@ -494,6 +496,8 @@ class ThumbnailPanel(QWidget):
         self._graphics_view.setBackgroundBrush(QColor(43, 43, 43))
         self._graphics_view.setFixedWidth(self._size[0])
         self._graphics_view.setFixedHeight(self._size[1])
+        self._graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self._scene = QGraphicsScene()
         self._graphics_view.setScene(self._scene)
