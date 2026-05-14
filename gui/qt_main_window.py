@@ -247,32 +247,30 @@ class StereoCalibrationGUI(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        # Load images section
-        load_group = QGroupBox("Load Images")
-        load_layout = QVBoxLayout(load_group)
-        load_layout.setSpacing(5)
+        # Load images section - left and right views side by side
+        load_splitter = QHBoxLayout()
 
-        # Left image loading
-        left_row = QHBoxLayout()
+        # Left view
+        left_view = QVBoxLayout()
         self._btn_load_left = QPushButton("Load Left Image")
         self._btn_load_left.clicked.connect(self._load_left_image)
-        left_row.addWidget(self._btn_load_left)
+        left_view.addWidget(self._btn_load_left)
 
-        self._left_thumbnail = ThumbnailPanel(load_group, "Preview", size=(140, 100))
-        left_row.addWidget(self._left_thumbnail)
-        load_layout.addLayout(left_row)
+        self._left_thumbnail = ThumbnailPanel(self, "Left Preview", size=(140, 100))
+        left_view.addWidget(self._left_thumbnail)
+        load_splitter.addLayout(left_view)
 
-        # Right image loading
-        right_row = QHBoxLayout()
+        # Right view
+        right_view = QVBoxLayout()
         self._btn_load_right = QPushButton("Load Right Image")
         self._btn_load_right.clicked.connect(self._load_right_image)
-        right_row.addWidget(self._btn_load_right)
+        right_view.addWidget(self._btn_load_right)
 
-        self._right_thumbnail = ThumbnailPanel(load_group, "Preview", size=(140, 100))
-        right_row.addWidget(self._right_thumbnail)
-        load_layout.addLayout(right_row)
+        self._right_thumbnail = ThumbnailPanel(self, "Right Preview", size=(140, 100))
+        right_view.addWidget(self._right_thumbnail)
+        load_splitter.addLayout(right_view)
 
-        layout.addWidget(load_group)
+        layout.addLayout(load_splitter)
 
         # Rectified images group
         rect_group = QGroupBox("Rectified Views")
