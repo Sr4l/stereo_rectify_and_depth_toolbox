@@ -84,6 +84,52 @@ class StereoCalibrationGUI(QMainWindow):
         """Create the application menu bar."""
         menubar = self.menuBar()
 
+        # File menu
+        file_menu = menubar.addMenu("&File")
+
+        # Load images
+        load_left_action = QAction("Load Left Image...", self)
+        load_left_action.setShortcut("Ctrl+O")
+        load_left_action.triggered.connect(self._load_left_image)
+        file_menu.addAction(load_left_action)
+
+        load_right_action = QAction("Load Right Image...", self)
+        load_right_action.setShortcut("Ctrl+R")
+        load_right_action.triggered.connect(self._load_right_image)
+        file_menu.addAction(load_right_action)
+
+        file_menu.addSeparator()
+
+        # Calibration
+        save_cal_action = QAction("Save Calibration...", self)
+        save_cal_action.setShortcut("Ctrl+Shift+S")
+        save_cal_action.triggered.connect(self._save_calibration)
+        file_menu.addAction(save_cal_action)
+
+        load_cal_action = QAction("Load Calibration...", self)
+        load_cal_action.setShortcut("Ctrl+L")
+        load_cal_action.triggered.connect(self._load_calibration)
+        file_menu.addAction(load_cal_action)
+
+        file_menu.addSeparator()
+
+        # Export
+        export_rectified_action = QAction("Export Rectified Images...", self)
+        export_rectified_action.triggered.connect(self._save_rectified_images)
+        file_menu.addAction(export_rectified_action)
+
+        export_depth_action = QAction("Export Depth Map...", self)
+        export_depth_action.triggered.connect(self._save_depth_map)
+        file_menu.addAction(export_depth_action)
+
+        file_menu.addSeparator()
+
+        # Exit
+        quit_action = QAction("E&xit", self)
+        quit_action.setShortcut("Ctrl+Q")
+        quit_action.triggered.connect(self.close)
+        file_menu.addAction(quit_action)
+
         # View menu
         view_menu = menubar.addMenu("&View")
 
@@ -93,11 +139,17 @@ class StereoCalibrationGUI(QMainWindow):
         self._theme_action.triggered.connect(self._toggle_theme)
         view_menu.addAction(self._theme_action)
 
-        view_menu.addSeparator()
-        quit_action = QAction("E&xit", self)
-        quit_action.setShortcut("Ctrl+Q")
-        quit_action.triggered.connect(self.close)
-        view_menu.addAction(quit_action)
+        # Refresh action
+        refresh_action = QAction("&Refresh", self)
+        refresh_action.setShortcut("F5")
+        refresh_action.triggered.connect(self._update_rectification)
+        view_menu.addAction(refresh_action)
+
+        # Help menu
+        help_menu = menubar.addMenu("&Help")
+        about_action = QAction("&About", self)
+        about_action.triggered.connect(self._show_about)
+        help_menu.addAction(about_action)
 
     def _apply_saved_theme(self):
         """Load and apply the saved theme preference or system default."""
@@ -134,6 +186,20 @@ class StereoCalibrationGUI(QMainWindow):
         current = get_current_theme()
         new_theme = "light" if current == "dark" else "dark"
         self._apply_theme(new_theme)
+
+    def _show_about(self):
+        """Show about dialog with software information."""
+        about_text = (
+            "<b>Stereo Rectification & Depth Toolbox</b><br><br>"
+            "Author: Lars Kistner<br>"
+            "License: BSD 3-Clause License<br><br>"
+            "Source: <a href='https://github.com/Sr4l/stereo_rectify_and_depth_toolbox'>"
+            "https://github.com/Sr4l/stereo_rectify_and_depth_toolbox</a><br><br>"
+            "This toolbox provides stereo rectification, depth estimation using "
+            "StereoBM, StereoSGBM, and RAFT-Stereo algorithms.<br><br>"
+            "<i>Note: Depth calculation functionality is experimental and unverified.</i>"
+        )
+        QMessageBox.about(self, "About", about_text)
 
     def _create_ui(self):
         """Create the user interface."""
@@ -741,7 +807,7 @@ class StereoCalibrationGUI(QMainWindow):
         dialog = QDialog(self)
         dialog.setWindowTitle("Download RAFT-Stereo Model")
         dialog.resize(450, 250)
-        dialog.setTransient(self)
+        # Transient relationship is set via parent constructor (PySide6 compatible)
 
         layout = QVBoxLayout(dialog)
 
@@ -773,14 +839,14 @@ class StereoCalibrationGUI(QMainWindow):
                 if rb.isChecked():
                     selected[0] = key
                     break
-            dialog.accept(1)
+            dialog.accept()
 
         download_btn = QPushButton("Download")
         download_btn.clicked.connect(on_download)
         btn_row.addWidget(download_btn)
 
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(lambda: dialog.reject(0))
+        cancel_btn.clicked.connect(dialog.reject)
         btn_row.addWidget(cancel_btn)
 
         layout.addLayout(btn_row)
