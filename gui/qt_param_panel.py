@@ -191,13 +191,14 @@ class CameraParamPanel(QWidget):
 
         # Translation vector
         t_group = QGroupBox("Translation Vector T")
-        t_layout = QHBoxLayout(t_group)
+        t_layout = QVBoxLayout(t_group)
         t_layout.setSpacing(4)
 
         t_labels = ['Tx', 'Ty', 'Tz']
         self._t_entries = []
 
         for label in t_labels:
+            row_layout = QHBoxLayout()
             lbl = QLabel(f"{label}:")
             lbl.setFixedWidth(35)
             entry = QLineEdit()
@@ -205,8 +206,9 @@ class CameraParamPanel(QWidget):
             entry.setText('0.0')
             entry.editingFinished.connect(self._on_param_change)
             self._t_entries.append(entry)
-            t_layout.addWidget(lbl)
-            t_layout.addWidget(entry)
+            row_layout.addWidget(lbl)
+            row_layout.addWidget(entry)
+            t_layout.addLayout(row_layout)
 
         ext_layout.addWidget(t_group)
         parent_layout.addWidget(ext_group)
