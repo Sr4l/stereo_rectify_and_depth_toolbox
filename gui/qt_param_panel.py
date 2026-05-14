@@ -109,28 +109,31 @@ class CameraParamPanel(QWidget):
         """)
 
     def _create_intrinsic_section(self, parent_layout: QVBoxLayout):
-        """Create intrinsic matrix (K) input section."""
-        k_group = QGroupBox("Intrinsic Matrix K")
-        k_layout = QGridLayout(k_group)
+        """Create intrinsic camera parameters (fx, fy, cx, cy) input section."""
+        k_group = QGroupBox("Intrinsic Camera Parameters")
+        k_layout = QVBoxLayout(k_group)
         k_layout.setSpacing(4)
 
-        self._entries['K'] = []
-        defaults = [
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0]
+        self._entries['K'] = {}
+        k_params = [
+            ('fx', 'fx (focal x):'),
+            ('fy', 'fy (focal y):'),
+            ('cx', 'cx (principal x):'),
+            ('cy', 'cy (principal y):'),
         ]
 
-        for i in range(3):
-            row_entries = []
-            for j in range(3):
-                entry = QLineEdit()
-                entry.setFixedWidth(70)
-                entry.setText(str(defaults[i][j]))
-                entry.editingFinished.connect(self._on_param_change)
-                row_entries.append(entry)
-                k_layout.addWidget(entry, i, j)
-            self._entries['K'].append(row_entries)
+        for key, label_text in k_params:
+            row_layout = QHBoxLayout()
+            lbl = QLabel(label_text)
+            lbl.setFixedWidth(100)
+            entry = QLineEdit()
+            entry.setFixedWidth(100)
+            entry.setText('0.0')
+            entry.editingFinished.connect(self._on_param_change)
+            self._entries['K'][key] = entry
+            row_layout.addWidget(lbl)
+            row_layout.addWidget(entry)
+            k_layout.addLayout(row_layout)
 
         parent_layout.addWidget(k_group)
 
@@ -222,11 +225,14 @@ class CameraParamPanel(QWidget):
         """Get intrinsic matrix as numpy array."""
         K = np.eye(3, dtype=np.float64)
         try:
-            for i in range(3):
-                for j in range(3):
-                    val = self._entries['K'][i][j].text().strip()
-                    if val:
-                        K[i, j] = float(val)
+            fx = float(self._entries['K']['fx'].text().strip())
+            fy = float(self._entries['K']['fy'].text().strip())
+            cx = float(self._entries['K']['cx'].text().strip())
+            cy = float(self._entries['K']['cy'].text().strip())
+            K[0, 0] = fx
+            K[1, 1] = fy
+            K[0, 2] = cx
+            K[1, 2] = cy
         except ValueError:
             pass
         return K
@@ -271,9 +277,10 @@ class CameraParamPanel(QWidget):
 
     def set_K(self, K: np.ndarray):
         """Set intrinsic matrix values."""
-        for i in range(3):
-            for j in range(3):
-                self._entries['K'][i][j].setText(f'{K[i, j]:.6f}')
+        self._entries['K']['fx'].setText(f'{K[0, 0]:.6f}')
+        self._entries['K']['fy'].setText(f'{K[1, 1]:.6f}')
+        self._entries['K']['cx'].setText(f'{K[0, 2]:.6f}')
+        self._entries['K']['cy'].setText(f'{K[1, 2]:.6f}')
 
     def set_distortion(self, dist: np.ndarray):
         """Set distortion coefficients."""
@@ -294,14 +301,10 @@ class CameraParamPanel(QWidget):
 
     def reset_to_identity(self):
         """Reset all parameters to default values."""
-        defaults_k = [
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0]
-        ]
-        for i in range(3):
-            for j in range(3):
-                self._entries['K'][i][j].setText(str(defaults_k[i][j]))
+        self._entries['K']['fx'].setText('1.0')
+        self._entries['K']['fy'].setText('1.0')
+        self._entries['K']['cx'].setText('0.0')
+        self._entries['K']['cy'].setText('0.0')
 
         for key in self._dist_entries:
             self._dist_entries[key].setText('0.0')
