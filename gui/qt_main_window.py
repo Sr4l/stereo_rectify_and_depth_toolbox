@@ -197,43 +197,20 @@ class StereoCalibrationGUI(QMainWindow):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Load images section
-        load_group = QGroupBox("Load Images")
-        load_layout = QVBoxLayout(load_group)
-        load_layout.setSpacing(5)
-
-        # Left image loading
-        left_row = QHBoxLayout()
-        self._btn_load_left = QPushButton("Load Left Image")
-        self._btn_load_left.clicked.connect(self._load_left_image)
-        left_row.addWidget(self._btn_load_left)
-
-        self._left_thumbnail = ThumbnailPanel(load_group, "Preview", size=(140, 100))
-        left_row.addWidget(self._left_thumbnail)
-        load_layout.addLayout(left_row)
-
-        # Right image loading
-        right_row = QHBoxLayout()
-        self._btn_load_right = QPushButton("Load Right Image")
-        self._btn_load_right.clicked.connect(self._load_right_image)
-        right_row.addWidget(self._btn_load_right)
-
-        self._right_thumbnail = ThumbnailPanel(load_group, "Preview", size=(140, 100))
-        right_row.addWidget(self._right_thumbnail)
-        load_layout.addLayout(right_row)
-
         # Calibration buttons
-        cal_row = QHBoxLayout()
+        cal_group = QGroupBox("Calibration")
+        cal_layout = QVBoxLayout(cal_group)
+        cal_layout.setSpacing(5)
+
         self._btn_save_cal = QPushButton("Save Calibration")
         self._btn_save_cal.clicked.connect(self._save_calibration)
-        cal_row.addWidget(self._btn_save_cal)
+        cal_layout.addWidget(self._btn_save_cal)
 
         self._btn_load_cal = QPushButton("Load Calibration")
         self._btn_load_cal.clicked.connect(self._load_calibration)
-        cal_row.addWidget(self._btn_load_cal)
-        load_layout.addLayout(cal_row)
+        cal_layout.addWidget(self._btn_load_cal)
 
-        layout.addWidget(load_group)
+        layout.addWidget(cal_group)
 
         # Scrollable parameter area
         scroll = QScrollArea()
@@ -264,11 +241,38 @@ class StereoCalibrationGUI(QMainWindow):
         return panel
 
     def _create_center_panel(self) -> QWidget:
-        """Create center panel with rectified images."""
+        """Create center panel with load images and rectified views."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
+
+        # Load images section
+        load_group = QGroupBox("Load Images")
+        load_layout = QVBoxLayout(load_group)
+        load_layout.setSpacing(5)
+
+        # Left image loading
+        left_row = QHBoxLayout()
+        self._btn_load_left = QPushButton("Load Left Image")
+        self._btn_load_left.clicked.connect(self._load_left_image)
+        left_row.addWidget(self._btn_load_left)
+
+        self._left_thumbnail = ThumbnailPanel(load_group, "Preview", size=(140, 100))
+        left_row.addWidget(self._left_thumbnail)
+        load_layout.addLayout(left_row)
+
+        # Right image loading
+        right_row = QHBoxLayout()
+        self._btn_load_right = QPushButton("Load Right Image")
+        self._btn_load_right.clicked.connect(self._load_right_image)
+        right_row.addWidget(self._btn_load_right)
+
+        self._right_thumbnail = ThumbnailPanel(load_group, "Preview", size=(140, 100))
+        right_row.addWidget(self._right_thumbnail)
+        load_layout.addLayout(right_row)
+
+        layout.addWidget(load_group)
 
         # Rectified images group
         rect_group = QGroupBox("Rectified Views")
