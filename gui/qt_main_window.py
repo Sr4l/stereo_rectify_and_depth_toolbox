@@ -1239,17 +1239,39 @@ class ParamControlsGroup:
         lbl.setStyleSheet("font-weight: bold;")
         row_layout.addWidget(lbl)
 
-        value_label = QLabel(str(default_value))
-        value_label.setFixedWidth(40)
-        value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        value_label.setStyleSheet("font-weight: bold;")
+        # Use QLineEdit instead of QLabel so user can type values
+        value_entry = QLineEdit(str(default_value))
+        value_entry.setFixedWidth(55)
+        value_entry.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        value_entry.setStyleSheet("""
+            border: 1px solid #007acc;
+            border-radius: 2px;
+            padding: 1px 3px;
+        """)
+        value_entry.setAttribute(Qt.WidgetAttribute.WA_InputMethodEnabled, True)
 
-        slider.valueChanged.connect(lambda v, vl=value_label: vl.setText(str(v)))
+        # Slider -> entry sync
+        slider.valueChanged.connect(lambda v, el=value_entry: el.setText(str(v)))
+        # Entry -> slider sync (on Enter/Return)
+        value_entry.returnPressed.connect(
+            lambda el=value_entry, sl=slider: self._sync_entry_to_slider(el, sl)
+        )
 
         row_layout.addWidget(slider, 1)
-        row_layout.addWidget(value_label)
+        row_layout.addWidget(value_entry)
 
         self._layout.addWidget(row)
+
+    def _sync_entry_to_slider(self, entry: QLineEdit, slider: QSlider):
+        """Sync the QLineEdit value to the QSlider, clamping to slider range."""
+        try:
+            val = int(entry.text())
+            clamped = max(slider.minimum(), min(slider.maximum(), val))
+            slider.setValue(clamped)
+            entry.setText(str(clamped))
+        except ValueError:
+            # Invalid input: revert to current slider value
+            entry.setText(str(slider.value()))
 
     def layout(self) -> QVBoxLayout:
         """Return the internal layout."""
