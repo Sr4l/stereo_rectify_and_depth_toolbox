@@ -26,7 +26,7 @@ class CameraParamPanel(QWidget):
         self._dist_entries: Dict[str, QLineEdit] = {}
         self._t_entries: List[QLineEdit] = []
 
-        self._apply_style()
+        # No per-widget stylesheet needed — global theme handles all styling
 
         group_box = QGroupBox(title)
         main_layout = QVBoxLayout(self)
@@ -60,53 +60,6 @@ class CameraParamPanel(QWidget):
     def _create_widgets(self):
         """Placeholder method - widgets are created inline in __init__."""
         pass
-    def _apply_style(self):
-        """Apply dark theme styling."""
-        self.setStyleSheet("""
-            QGroupBox {
-                background-color: #1e1e1e;
-                color: #ffffff;
-                border: 1px solid #3c3c3c;
-                border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 15px;
-                font-weight: bold;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-                color: #007acc;
-            }
-            QLabel {
-                color: #ffffff;
-                background-color: #1e1e1e;
-            }
-            QLineEdit {
-                background-color: #252526;
-                color: #ffffff;
-                border: 1px solid #3c3c3c;
-                border-radius: 3px;
-                padding: 3px 6px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #007acc;
-            }
-            QPushButton {
-                background-color: #0e639c;
-                color: white;
-                border: none;
-                padding: 5px 12px;
-                border-radius: 3px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1177bb;
-            }
-            QPushButton:pressed {
-                background-color: #0d538f;
-            }
-        """)
 
     def _create_intrinsic_section(self, parent_layout: QVBoxLayout):
         """Create intrinsic camera parameters (fx, fy, cx, cy) input section."""

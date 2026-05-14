@@ -64,7 +64,7 @@ class ImagePanel(QWidget):
         self._zoom_slider: Optional[QSlider] = None
 
         self._create_widgets()
-        self._apply_style()
+        # No per-widget stylesheet needed — global theme handles all styling
 
         group_box = QGroupBox(title)
         layout = QVBoxLayout(self)
@@ -80,7 +80,7 @@ class ImagePanel(QWidget):
         self._graphics_view = QGraphicsView()
         self._graphics_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self._graphics_view.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        self._graphics_view.setBackgroundBrush(QColor(43, 43, 43))
+        # Background color is now handled by global theme stylesheet
         self._graphics_view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self._graphics_view.setMouseTracking(True)
         self._graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -124,65 +124,6 @@ class ImagePanel(QWidget):
         control_layout.addWidget(self._fit_button)
         control_layout.addWidget(self._one_to_one_button)
         control_layout.addWidget(self._save_button)
-
-    def _apply_style(self):
-        """Apply dark theme styling."""
-        self.setStyleSheet("""
-            QGroupBox {
-                background-color: #1e1e1e;
-                color: #ffffff;
-                border: 1px solid #3c3c3c;
-                border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 15px;
-                font-weight: bold;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-                color: #007acc;
-            }
-            QLabel {
-                color: #ffffff;
-                background-color: #1e1e1e;
-            }
-            QPushButton {
-                background-color: #0e639c;
-                color: white;
-                border: none;
-                padding: 5px 12px;
-                border-radius: 3px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1177bb;
-            }
-            QPushButton:pressed {
-                background-color: #0d538f;
-            }
-            QSlider::groove:horizontal {
-                border: 1px solid #3c3c3c;
-                height: 6px;
-                background: #3c3c3c;
-                border-radius: 3px;
-            }
-            QSlider::handle:horizontal {
-                background: #007acc;
-                border: 1px solid #005a9e;
-                width: 14px;
-                height: 14px;
-                margin: -5px 0;
-                border-radius: 7px;
-            }
-            QSlider::handle:horizontal:hover {
-                background: #1a8beb;
-            }
-            QGraphicsView {
-                background-color: #2b2b2b;
-                border: 1px solid #3c3c3c;
-            }
-        """)
 
     def eventFilter(self, obj, event):
         """Event filter for QGraphicsView viewport to handle mouse events."""
@@ -482,7 +423,7 @@ class ThumbnailPanel(QWidget):
         self._pixmap_item: Optional[QGraphicsPixmapItem] = None
         self._load_button: Optional[QPushButton] = None
 
-        self._apply_style()
+        # No per-widget stylesheet needed — global theme handles all styling
         self._create_widgets(load_button_text)
 
     def _create_widgets(self, load_button_text: str):
@@ -518,7 +459,7 @@ class ThumbnailPanel(QWidget):
 
         self._graphics_view = QGraphicsView()
         self._graphics_view.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        self._graphics_view.setBackgroundBrush(QColor(43, 43, 43))
+        # Background color is now handled by global theme stylesheet
         self._graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._graphics_view.setMinimumHeight(150)
@@ -533,30 +474,6 @@ class ThumbnailPanel(QWidget):
     def get_load_button(self) -> Optional[QPushButton]:
         """Return the load button so the main window can connect signals."""
         return self._load_button
-
-    def _apply_style(self):
-        """Apply dark theme styling."""
-        self.setStyleSheet("""
-            QGroupBox {
-                background-color: #1e1e1e;
-                color: #ffffff;
-                border: 1px solid #3c3c3c;
-                border-radius: 5px;
-                margin-top: 5px;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 8px;
-                padding: 0 3px;
-                color: #007acc;
-                font-weight: bold;
-            }
-            QGraphicsView {
-                background-color: #2b2b2b;
-                border: 1px solid #3c3c3c;
-            }
-        """)
 
     def set_image(self, image: np.ndarray):
         """Set the thumbnail image."""

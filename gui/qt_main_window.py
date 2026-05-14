@@ -13,11 +13,12 @@ from PySide6.QtWidgets import (
     QScrollArea, QGridLayout, QFormLayout, QFrame, QApplication,
     QDialog, QRadioButton, QLineEdit
 )
-from PySide6.QtCore import Qt, QTimer, QThread, Signal
+from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSettings
 from PySide6.QtGui import QAction, QKeySequence
 
 from .qt_image_panel import ImagePanel
 from .qt_param_panel import CameraParamPanel
+from .theme import set_app_theme, get_current_theme, get_initial_theme, ThemeName
 from core.rectifier import StereoRectifier
 from core.depth import DepthEstimator, normalize_stereo_pair
 
@@ -55,110 +56,11 @@ class StereoCalibrationGUI(QMainWindow):
         self._shared_zoom_factor: float = 1.0
         self._shared_zoom_locked: bool = False  # prevents recursive zoom updates
 
+        self._settings = QSettings("StereoDepthToolbox", "StereoCalibrationGUI")
+        self._create_menu_bar()
         self._create_ui()
-        self._apply_style()
         self._bind_shortcuts()
-
-    def _apply_style(self):
-        """Apply dark theme styling to the entire application."""
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #1e1e1e;
-            }
-            QGroupBox {
-                background-color: #1e1e1e;
-                color: #ffffff;
-                border: 1px solid #3c3c3c;
-                border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 15px;
-                font-weight: bold;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-                color: #007acc;
-            }
-            QLabel {
-                color: #ffffff;
-                background-color: #1e1e1e;
-            }
-            QPushButton {
-                background-color: #0e639c;
-                color: white;
-                border: none;
-                padding: 5px 12px;
-                border-radius: 3px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1177bb;
-            }
-            QPushButton:pressed {
-                background-color: #0d538f;
-            }
-            QPushButton:disabled {
-                background-color: #4a4a4a;
-                color: #888888;
-            }
-            QComboBox {
-                background-color: #252526;
-                color: #ffffff;
-                border: 1px solid #3c3c3c;
-                border-radius: 3px;
-                padding: 3px 6px;
-            }
-            QComboBox:disabled {
-                background-color: #2d2d2d;
-                color: #888888;
-            }
-            QComboBox::drop-down {
-                border: none;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #252526;
-                color: #ffffff;
-                selection-background-color: #0e639c;
-            }
-            QCheckBox {
-                color: #ffffff;
-                background-color: #1e1e1e;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 16px;
-                height: 16px;
-            }
-            QCheckBox::indicator:checked {
-                image: url(:/checked.png);
-            }
-            QSlider::groove:horizontal {
-                border: 1px solid #3c3c3c;
-                height: 6px;
-                background: #3c3c3c;
-                border-radius: 3px;
-            }
-            QSlider::handle:horizontal {
-                background: #007acc;
-                border: 1px solid #005a9e;
-                width: 14px;
-                height: 14px;
-                margin: -5px 0;
-                border-radius: 7px;
-            }
-            QSlider::handle:horizontal:hover {
-                background: #1a8beb;
-            }
-            QStatusBar {
-                background-color: #1e1e1e;
-                color: #cccccc;
-                border-top: 1px solid #3c3c3c;
-            }
-            QScrollArea {
-                border: none;
-            }
-        """)
+        self._apply_saved_theme()
 
     def _bind_shortcuts(self):
         """Bind keyboard shortcuts."""
@@ -177,6 +79,61 @@ class StereoCalibrationGUI(QMainWindow):
         update_action = QAction(self)
         update_action.setShortcut(QKeySequence("F5"))
         update_action.triggered.connect(self._update_rectification)
+
+    def _create_menu_bar(self):
+        """Create the application menu bar."""
+        menubar = self.menuBar()
+
+        # View menu
+        view_menu = menubar.addMenu("&View")
+
+        # Theme toggle action
+        self._theme_action = QAction("&Dark Theme", self, checkable=True, checked=True)
+        self._theme_action.setShortcut("Ctrl+T")
+        self._theme_action.triggered.connect(self._toggle_theme)
+        view_menu.addAction(self._theme_action)
+
+        view_menu.addSeparator()
+        quit_action = QAction("E&xit", self)
+        quit_action.setShortcut("Ctrl+Q")
+        quit_action.triggered.connect(self.close)
+        view_menu.addAction(quit_action)
+
+    def _apply_saved_theme(self):
+        """Load and apply the saved theme preference or system default."""
+        app = QApplication.instance()
+        initial_theme = get_initial_theme(self._settings, app)
+        self._apply_theme(initial_theme)
+
+    def _apply_theme(self, theme_name: ThemeName):
+        """Apply a theme and persist the preference.
+
+        Parameters
+        ----------
+        theme_name : "dark" | "light"
+            Theme to apply.
+        """
+        # Apply to the entire application via the global app instance
+        app = QApplication.instance()
+        if app is not None:
+            set_app_theme(theme_name, app)
+
+        # Update menu bar check state
+        if theme_name == "dark":
+            self._theme_action.setChecked(True)
+            self._theme_action.setText("&Dark Theme")
+        else:
+            self._theme_action.setChecked(False)
+            self._theme_action.setText("&Light Theme")
+
+        # Persist preference
+        self._settings.setValue("ui/theme", theme_name)
+
+    def _toggle_theme(self):
+        """Toggle between dark and light themes."""
+        current = get_current_theme()
+        new_theme = "light" if current == "dark" else "dark"
+        self._apply_theme(new_theme)
 
     def _create_ui(self):
         """Create the user interface."""
@@ -236,6 +193,7 @@ class StereoCalibrationGUI(QMainWindow):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         scroll_content = QWidget()
+        scroll_content.setObjectName("scrollContent")
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setSpacing(5)
 
@@ -1243,11 +1201,6 @@ class ParamControlsGroup:
         value_entry = QLineEdit(str(default_value))
         value_entry.setFixedWidth(55)
         value_entry.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        value_entry.setStyleSheet("""
-            border: 1px solid #007acc;
-            border-radius: 2px;
-            padding: 1px 3px;
-        """)
         value_entry.setAttribute(Qt.WidgetAttribute.WA_InputMethodEnabled, True)
 
         # Slider -> entry sync
@@ -1280,25 +1233,21 @@ class ParamControlsGroup:
     def add_hint(self, hint_text: str):
         """Add a hint label at the bottom explaining slider behavior."""
         hint = QLabel(hint_text)
-        hint.setStyleSheet("""
-            color: #888888;
-            font-size: 8pt;
-            background-color: #1e1e1e;
-        """)
+        hint.setStyleSheet("font-size: 8pt;")
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._layout.addWidget(hint)
 
 
 def main():
     """Main entry point."""
-    app = QApplication.instance() or QApplication([])
-    app.setStyle("Fusion")  # Use Fusion style for consistent dark appearance
+    import sys
+    app = QApplication.instance() or QApplication(sys.argv)
+    app.setStyle("Fusion")  # Use Fusion style for consistent appearance across platforms
     app.setApplicationName("Stereo Camera Calibration & Depth Toolbox")
 
     window = StereoCalibrationGUI()
     window.show()
 
-    import sys
     sys.exit(app.exec())
 
 
