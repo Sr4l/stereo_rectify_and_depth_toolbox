@@ -96,8 +96,9 @@ class ImagePanel(QWidget):
 
         # Control bar
         self._control_bar_widget = QWidget()
-        control_layout = QHBoxLayout(self._control_bar_widget)
+        control_layout = QVBoxLayout(self._control_bar_widget)
         control_layout.setContentsMargins(5, 2, 5, 2)
+        control_layout.setSpacing(2)
 
         self._zoom_label = QLabel("Zoom:")
         self._zoom_value_label = QLabel("100%")
@@ -115,15 +116,25 @@ class ImagePanel(QWidget):
         self._one_to_one_button = QPushButton("1:1")
         self._one_to_one_button.clicked.connect(self.reset_zoom)
 
-        self._save_button = QPushButton("Save")
+        self._save_button = QPushButton("Save image")
         self._save_button.clicked.connect(self.save_image)
 
-        control_layout.addWidget(self._zoom_label)
-        control_layout.addWidget(self._zoom_value_label)
-        control_layout.addWidget(self._zoom_slider)
-        control_layout.addWidget(self._fit_button)
-        control_layout.addWidget(self._one_to_one_button)
-        control_layout.addWidget(self._save_button)
+        # Row 1: Zoom controls + Fit + 1:1 buttons
+        zoom_row = QHBoxLayout()
+        zoom_row.addWidget(self._zoom_label)
+        zoom_row.addWidget(self._zoom_value_label)
+        zoom_row.addWidget(self._zoom_slider)
+        zoom_row.addWidget(self._fit_button)
+        zoom_row.addWidget(self._one_to_one_button)
+        zoom_row.addStretch()
+        control_layout.addLayout(zoom_row)
+
+        # Row 2: Save button only
+        save_row = QHBoxLayout()
+        save_row.addStretch()
+        save_row.addWidget(self._save_button)
+        save_row.addStretch()
+        control_layout.addLayout(save_row)
 
     def eventFilter(self, obj, event):
         """Event filter for QGraphicsView viewport to handle mouse events."""
