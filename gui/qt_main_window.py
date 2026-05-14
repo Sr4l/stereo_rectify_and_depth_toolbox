@@ -646,36 +646,28 @@ class StereoCalibrationGUI(QMainWindow):
         self._raft_frame.layout().addWidget(info_label)
         layout.addWidget(self._raft_frame.group)
 
-        # Visualization controls
+        # Visualization controls (all in one row)
         vis_group = QGroupBox("Visualization Controls")
-        vis_layout = QVBoxLayout(vis_group)
-        vis_layout.setSpacing(5)
+        vis_layout = QHBoxLayout(vis_group)
+        vis_layout.setSpacing(10)
 
-        # Update buttons row
-        btn_row = QHBoxLayout()
         self._btn_update_depth = QPushButton("Update Depth")
         self._btn_update_depth.clicked.connect(self._update_depth)
-        btn_row.addWidget(self._btn_update_depth)
+        vis_layout.addWidget(self._btn_update_depth)
 
-        self._btn_save_depth = QPushButton("Save Depth Map")
-        self._btn_save_depth.clicked.connect(self._save_depth_map)
-        btn_row.addWidget(self._btn_save_depth)
-        vis_layout.addLayout(btn_row)
-
-        # View mode and colormap row
-        view_row = QHBoxLayout()
-        view_row.addWidget(QLabel("View:"))
+        vis_layout.addWidget(QLabel("View:"))
         self._view_mode_combo = QComboBox()
         self._view_mode_combo.addItems(["disparity", "depth (mm)"])
         self._view_mode_combo.currentTextChanged.connect(self._update_depth)
-        view_row.addWidget(self._view_mode_combo)
+        vis_layout.addWidget(self._view_mode_combo)
 
-        view_row.addWidget(QLabel("Colormap:"))
+        vis_layout.addWidget(QLabel("Colormap:"))
         self._colormap_combo = QComboBox()
         self._colormap_combo.addItems(["JET", "VIRIDIS", "MAGMA", "INFERNO", "PLASMA", "CIVIDIS"])
         self._colormap_combo.currentTextChanged.connect(self._update_depth)
-        view_row.addWidget(self._colormap_combo)
-        vis_layout.addLayout(view_row)
+        vis_layout.addWidget(self._colormap_combo)
+
+        vis_layout.addStretch()
 
         layout.addWidget(vis_group)
 
