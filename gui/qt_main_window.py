@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, QThread, Signal
 from PySide6.QtGui import QAction, QKeySequence
 
-from .qt_image_panel import ImagePanel, ThumbnailPanel
+from .qt_image_panel import ImagePanel
 from .qt_param_panel import CameraParamPanel
 from core.rectifier import StereoRectifier
 from core.depth import DepthEstimator, normalize_stereo_pair
@@ -51,6 +51,9 @@ class StereoCalibrationGUI(QMainWindow):
         except Exception:
             self.raft_available = False
             self.raft_unavailable_reason = "Unknown error"
+
+        self._shared_zoom_factor: float = 1.0
+        self._shared_zoom_locked: bool = False  # prevents recursive zoom updates
 
         self._create_ui()
         self._apply_style()
@@ -256,28 +259,56 @@ class StereoCalibrationGUI(QMainWindow):
         return panel
 
     def _create_center_panel(self) -> QWidget:
-        """Create center panel with load images and rectified views."""
+        """Create center panel with all 4 zoom-synchronized image panels."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        # Load images section - left and right views side by side
-        load_splitter = QHBoxLayout()
+        # === Row 1: Left/Right Camera Image Panels (50% of space) ===
+        camera_group = QGroupBox("Camera Images")
+        camera_layout = QVBoxLayout(camera_group)
+        camera_layout.setSpacing(5)
 
-        # Left view
-        self._left_thumbnail = ThumbnailPanel(self, "Left Camera Image", size=(400, 300), load_button_text="Load Left Image")
-        self._left_thumbnail.get_load_button().clicked.connect(self._load_left_image)
-        load_splitter.addWidget(self._left_thumbnail, 1)
+        # Load buttons row
+        load_btn_row = QHBoxLayout()
+        load_btn_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        load_btn_row.setContentsMargins(10, 5, 10, 5)
 
-        # Right view
-        self._right_thumbnail = ThumbnailPanel(self, "Right Camera Image", size=(400, 300), load_button_text="Load Right Image")
-        self._right_thumbnail.get_load_button().clicked.connect(self._load_right_image)
-        load_splitter.addWidget(self._right_thumbnail, 1)
+        self._left_load_button = QPushButton("Load Left Image")
+        self._left_load_button.clicked.connect(self._load_left_image)
+        load_btn_row.addWidget(self._left_load_button)
 
-        layout.addLayout(load_splitter, 1)
+        self._right_load_button = QPushButton("Load Right Image")
+        self._right_load_button.clicked.connect(self._load_right_image)
+        load_btn_row.addWidget(self._right_load_button)
 
-        # Rectified images group
+        camera_layout.addLayout(load_btn_row)
+
+        # Image panels row
+        images_row = QHBoxLayout()
+        images_row.setSpacing(5)
+
+        self._left_camera_panel = ImagePanel(
+            camera_group, "Left Camera", show_controls=False
+        )
+        images_row.addWidget(self._left_camera_panel, 1)
+
+        self._right_camera_panel = ImagePanel(
+            camera_group, "Right Camera", show_controls=False
+        )
+        images_row.addWidget(self._right_camera_panel, 1)
+
+        camera_layout.addLayout(images_row)
+
+        # Camera group takes 1 part of the space
+        layout.addWidget(camera_group, 1)
+
+        # === Row 2: Shared Zoom Control (minimal height) ===
+        self._zoom_control_group = self._create_zoom_control_group()
+        layout.addWidget(self._zoom_control_group)
+
+        # === Row 3: Left/Right Rectified Image Panels (50% of space) ===
         rect_group = QGroupBox("Rectified Views")
         rect_layout = QVBoxLayout(rect_group)
         rect_layout.setSpacing(2)
@@ -294,7 +325,7 @@ class StereoCalibrationGUI(QMainWindow):
         images_row.addWidget(self._rectified_right_panel, 1)
         rect_layout.addLayout(images_row)
 
-        # Options row
+        # === Row 4: Options ===
         options_row = QHBoxLayout()
 
         self._epipolar_checkbox = QCheckBox("Show Epipolar Lines")
@@ -303,7 +334,7 @@ class StereoCalibrationGUI(QMainWindow):
 
         options_row.addWidget(QLabel("View:"))
         self._view_type_combo = QComboBox()
-        self._view_type_combo.addItems(["original", "rectified", "rectified gray"])
+        self._view_type_combo.addItems(["rectified", "rectified gray"])
         self._view_type_combo.currentTextChanged.connect(self._update_rectification)
         options_row.addWidget(self._view_type_combo)
 
@@ -314,9 +345,114 @@ class StereoCalibrationGUI(QMainWindow):
         options_row.addWidget(self._btn_save_rectified)
 
         rect_layout.addLayout(options_row)
+        # Rectified group takes 1 part of the space (equal to camera group = 50/50)
         layout.addWidget(rect_group, 1)
 
         return panel
+
+    def _create_zoom_control_group(self) -> QGroupBox:
+        """Create a shared zoom control group box with slider and buttons.
+        
+        Returns a QGroupBox containing a zoom slider that synchronizes zoom
+        across all four image panels (camera left/right, rectified left/right).
+        """
+        zoom_group = QGroupBox("Synchronized Zoom Control")
+        zoom_layout = QVBoxLayout(zoom_group)
+        zoom_layout.setSpacing(3)
+
+        # Slider row
+        slider_row = QHBoxLayout()
+        slider_row.addWidget(QLabel("Zoom:"))
+
+        self._shared_zoom_slider = QSlider(Qt.Orientation.Horizontal)
+        self._shared_zoom_slider.setRange(10, 500)
+        self._shared_zoom_slider.setValue(100)
+        self._shared_zoom_slider.setFixedWidth(250)
+        self._shared_zoom_slider.valueChanged.connect(self._on_shared_zoom_changed)
+        slider_row.addWidget(self._shared_zoom_slider)
+
+        self._shared_zoom_label = QLabel("100%")
+        self._shared_zoom_label.setFixedWidth(50)
+        self._shared_zoom_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        slider_row.addWidget(self._shared_zoom_label)
+
+        self._zoom_fit_button = QPushButton("Fit")
+        self._zoom_fit_button.clicked.connect(self._on_zoom_fit)
+        slider_row.addWidget(self._zoom_fit_button)
+
+        self._zoom_1to1_button = QPushButton("1:1")
+        self._zoom_1to1_button.clicked.connect(self._on_zoom_1to1)
+        slider_row.addWidget(self._zoom_1to1_button)
+
+        slider_row.addStretch(1)
+        zoom_layout.addLayout(slider_row)
+
+        return zoom_group
+
+    def _on_shared_zoom_changed(self, value: int):
+        """Handle shared zoom slider change and propagate to all panels."""
+        if self._shared_zoom_locked:
+            return
+        self._shared_zoom_locked = True
+        self._shared_zoom_factor = value / 100.0
+        self._shared_zoom_label.setText(f"{value}%")
+        self._apply_zoom_to_all_panels()
+        self._shared_zoom_locked = False
+
+    def _on_zoom_fit(self):
+        """Handle Fit button - fit all panels to their viewport."""
+        if self._shared_zoom_locked:
+            return
+        self._shared_zoom_locked = True
+        panels = [
+            self._left_camera_panel,
+            self._right_camera_panel,
+            self._rectified_left_panel,
+            self._rectified_right_panel,
+        ]
+        for panel in panels:
+            if hasattr(panel, 'fit_to_window'):
+                panel.fit_to_window()
+        # Sync slider to the resulting zoom level
+        if panels[0]._zoom_slider is not None:
+            self._shared_zoom_slider.setValue(int(panels[0]._zoom_factor * 100))
+        self._shared_zoom_locked = False
+
+    def _on_zoom_1to1(self):
+        """Handle 1:1 button - reset all panels to 1:1 zoom."""
+        if self._shared_zoom_locked:
+            return
+        self._shared_zoom_locked = True
+        panels = [
+            self._left_camera_panel,
+            self._right_camera_panel,
+            self._rectified_left_panel,
+            self._rectified_right_panel,
+        ]
+        for panel in panels:
+            if hasattr(panel, 'reset_zoom'):
+                panel.reset_zoom()
+        self._shared_zoom_slider.setValue(100)
+        self._shared_zoom_locked = False
+
+    def _apply_zoom_to_all_panels(self):
+        """Apply the shared zoom factor to all four image panels."""
+        zoom_factor = self._shared_zoom_factor
+        panels = [
+            self._left_camera_panel,
+            self._right_camera_panel,
+            self._rectified_left_panel,
+            self._rectified_right_panel,
+        ]
+        for panel in panels:
+            if not hasattr(panel, '_zoom_factor') or panel._image is None:
+                continue
+            panel._zoom_factor = zoom_factor
+            if hasattr(panel, '_zoom_slider') and panel._zoom_slider is not None:
+                panel._zoom_slider.blockSignals(True)
+                panel._zoom_slider.setValue(int(zoom_factor * 100))
+                panel._zoom_slider.blockSignals(False)
+            panel._update_display()
 
     def _create_right_panel(self) -> QWidget:
         """Create right panel with depth map and controls."""
@@ -523,28 +659,29 @@ class StereoCalibrationGUI(QMainWindow):
 
             view_type = self._view_type_combo.currentText()
 
-            if view_type == "original":
-                display_left = self.rectifier.left_image
-                display_right = self.rectifier.right_image
-            elif view_type == "rectified gray":
+            if view_type == "rectified gray":
                 if rect_left is not None and rect_right is not None:
                     left_gray, right_gray = normalize_stereo_pair(rect_left, rect_right)
                     display_left = cv2.cvtColor(left_gray, cv2.COLOR_GRAY2BGR)
                     display_right = cv2.cvtColor(right_gray, cv2.COLOR_GRAY2BGR)
                 else:
-                    display_left = self.rectifier.left_image
-                    display_right = self.rectifier.right_image
+                    display_left = rect_left if rect_left is not None else self.rectifier.left_image
+                    display_right = rect_right if rect_right is not None else self.rectifier.right_image
             else:
                 display_left = rect_left if rect_left is not None else self.rectifier.left_image
                 display_right = rect_right if rect_right is not None else self.rectifier.right_image
 
             if display_left is not None and display_right is not None:
-                if self._epipolar_checkbox.isChecked() and view_type != "original":
+                if self._epipolar_checkbox.isChecked():
                     display_left = self.rectifier.draw_epipolar_lines(display_left)
                     display_right = self.rectifier.draw_epipolar_lines(display_right)
 
+                # Update rectified panels
                 self._rectified_left_panel.set_image(display_left)
                 self._rectified_right_panel.set_image(display_right)
+
+                # Re-apply shared zoom to all panels
+                self._apply_zoom_to_all_panels()
 
                 self._update_depth()
 
@@ -579,7 +716,7 @@ class StereoCalibrationGUI(QMainWindow):
             image = cv2.imread(file_path)
             if image is not None:
                 self.rectifier.set_left_image(image)
-                self._left_thumbnail.set_image(image)
+                self._left_camera_panel.set_image(image)
                 self._update_rectification()
                 self._status_label.setText(f"Left image loaded: {os.path.basename(file_path)}")
 
@@ -596,7 +733,7 @@ class StereoCalibrationGUI(QMainWindow):
             image = cv2.imread(file_path)
             if image is not None:
                 self.rectifier.set_right_image(image)
-                self._right_thumbnail.set_image(image)
+                self._right_camera_panel.set_image(image)
                 self._update_rectification()
                 self._status_label.setText(f"Right image loaded: {os.path.basename(file_path)}")
 

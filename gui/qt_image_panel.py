@@ -69,6 +69,7 @@ class ImagePanel(QWidget):
         group_box = QGroupBox(title)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
+
         layout.addWidget(self._graphics_view)
         if show_controls:
             layout.addWidget(self._control_bar_widget)
