@@ -474,6 +474,9 @@ class StereoCalibrationGUI(QMainWindow):
 
         layout.addWidget(vis_group)
 
+        # Initially hide all algorithm panels, show only the default (BM)
+        self._update_algorithm_visibility()
+
         return panel
 
     def _create_status_bar(self):
