@@ -137,13 +137,14 @@ class CameraParamPanel(QWidget):
     def _create_distortion_section(self, parent_layout: QVBoxLayout):
         """Create distortion coefficients input section."""
         dist_group = QGroupBox("Distortion Coefficients")
-        dist_layout = QGridLayout(dist_group)
+        dist_layout = QVBoxLayout(dist_group)
         dist_layout.setSpacing(4)
 
         dist_labels = ['k1', 'k2', 'p1', 'p2', 'k3']
         self._dist_entries = {}
 
-        for idx, label in enumerate(dist_labels):
+        for label in dist_labels:
+            row_layout = QHBoxLayout()
             lbl = QLabel(f"{label}:")
             lbl.setFixedWidth(35)
             entry = QLineEdit()
@@ -151,11 +152,9 @@ class CameraParamPanel(QWidget):
             entry.setText('0.0')
             entry.editingFinished.connect(self._on_param_change)
             self._dist_entries[label] = entry
-
-            row = idx // 3
-            col = (idx % 3) * 2
-            dist_layout.addWidget(lbl, row, col)
-            dist_layout.addWidget(entry, row, col + 1)
+            row_layout.addWidget(lbl)
+            row_layout.addWidget(entry)
+            dist_layout.addLayout(row_layout)
 
         parent_layout.addWidget(dist_group)
 
