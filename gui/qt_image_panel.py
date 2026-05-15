@@ -118,7 +118,7 @@ class ImagePanel(QWidget):
         self._save_button = QPushButton("Save image")
         self._save_button.clicked.connect(self.save_image)
 
-        self._export_button = QPushButton("Export...")
+        self._export_button = QPushButton("Export data")
         self._export_button.clicked.connect(self.export_data)
 
         # Row 1: Zoom controls + Fit + 1:1 buttons

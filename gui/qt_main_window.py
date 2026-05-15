@@ -140,9 +140,13 @@ class StereoCalibrationGUI(QMainWindow):
         export_rectified_action.triggered.connect(self._save_rectified_images)
         file_menu.addAction(export_rectified_action)
 
-        export_depth_action = QAction("Export Depth Map...", self)
+        export_depth_action = QAction("Export Depth or Disparity Image...", self)
         export_depth_action.triggered.connect(self._save_depth_map)
         file_menu.addAction(export_depth_action)
+
+        export_data_action = QAction("Export Depth or Disparity Data...", self)
+        export_data_action.triggered.connect(self._export_depth_data)
+        file_menu.addAction(export_data_action)
 
         file_menu.addSeparator()
 
