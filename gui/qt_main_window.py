@@ -1053,6 +1053,15 @@ class StereoCalibrationGUI(QMainWindow):
                 view_mode = self._view_mode_combo.currentText()
 
                 if view_mode == "depth (mm)":
+                    # Set camera params from the rectification translation vector
+                    # Baseline = X-component of T (after rectification)
+                    T_right = self._right_param_panel.get_T()
+                    baseline_m = abs(T_right[0])
+                    K_left = self._left_param_panel.get_K()
+                    focal_length_px = (K_left[0, 0] + K_left[1, 1]) / 2.0
+                    self.depth_estimator.set_camera_params(baseline_m, focal_length_px)
+
+                    # Always compute depth_map so the tooltip can read from it
                     depth_map = self.depth_estimator.compute_depth()
                     if depth_map is not None:
                         depth_mm = depth_map * 1000
@@ -1087,7 +1096,11 @@ class StereoCalibrationGUI(QMainWindow):
             self._status_label.setText(f"Depth Error: {str(e)}")
 
     def _get_depth_value(self, x: int, y: int) -> str:
-        """Get depth/disparity value at pixel coordinates for tooltip."""
+        """Get depth/disparity value at pixel coordinates for tooltip.
+
+        Reads from the pre-computed depth_estimator.depth_map when in depth mode,
+        avoiding redundant calculation of (baseline * focal_length) / disparity.
+        """
         if (self.depth_estimator.disparity is None or
                 y >= self.depth_estimator.disparity.shape[0] or
                 x >= self.depth_estimator.disparity.shape[1]):
@@ -1102,13 +1115,27 @@ class StereoCalibrationGUI(QMainWindow):
             view_mode = self._view_mode_combo.currentText()
 
             if view_mode == "depth (mm)":
-                K_left = self._left_param_panel.get_K()
+                # Ensure camera params are set (should already be set by _update_depth)
                 T_right = self._right_param_panel.get_T()
-                baseline = np.linalg.norm(T_right)
-                focal_length = (K_left[0, 0] + K_left[1, 1]) / 2.0
+                baseline_m = abs(T_right[0])
+                K_left = self._left_param_panel.get_K()
+                focal_length_px = (K_left[0, 0] + K_left[1, 1]) / 2.0
 
-                depth_m = (baseline * focal_length) / disp_val
-                depth_mm = depth_m * 1000
+                # Only update if params changed (avoids redundant set calls)
+                if (abs(self.depth_estimator.baseline - baseline_m) > 1e-9 or
+                        abs(self.depth_estimator.focal_length - focal_length_px) > 1e-9):
+                    self.depth_estimator.set_camera_params(baseline_m, focal_length_px)
+                    # Re-compute depth_map with updated params
+                    self.depth_estimator.compute_depth()
+
+                # Read depth directly from the pre-computed depth_map
+                if (self.depth_estimator.depth_map is not None and
+                        y < self.depth_estimator.depth_map.shape[0] and
+                        x < self.depth_estimator.depth_map.shape[1]):
+                    depth_m = self.depth_estimator.depth_map[y, x]
+                    depth_mm = depth_m * 1000  # convert meters to mm
+                else:
+                    return None
 
                 if depth_mm > 10000:
                     return f"({x}, {y})  Disparity: {disp_val:.2f}  Depth: >10000mm"
