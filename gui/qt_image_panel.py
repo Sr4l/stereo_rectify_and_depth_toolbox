@@ -206,7 +206,7 @@ class ImagePanel(QWidget):
             self._copy_to_clipboard()
 
     def fit_to_window(self):
-        """Fit image to viewport size."""
+        """Fit image to viewport size and center it."""
         if self._image is None:
             return
         if self._graphics_view is None:
@@ -215,6 +215,9 @@ class ImagePanel(QWidget):
         vw = viewport.width()
         vh = viewport.height()
         if vw <= 1 or vh <= 1:
+            # If viewport is not sized yet, reset offsets and let _update_display handle it later
+            self._pan_offset_x = 0.0
+            self._pan_offset_y = 0.0
             return
         img_h, img_w = self._image.shape[:2]
         scale_w = vw / img_w
@@ -227,7 +230,7 @@ class ImagePanel(QWidget):
         self._update_display()
 
     def reset_zoom(self):
-        """Reset zoom to 1:1."""
+        """Reset zoom to 1:1 and center the image."""
         self._zoom_factor = 1.0
         self._pan_offset_x = 0.0
         self._pan_offset_y = 0.0
@@ -236,7 +239,7 @@ class ImagePanel(QWidget):
         self._update_display()
 
     def reset_view(self):
-        """Reset to fit-to-window view."""
+        """Reset to fit-to-window view and center."""
         self.fit_to_window()
 
     def _update_display(self):
@@ -282,6 +285,9 @@ class ImagePanel(QWidget):
             center_x - item_rect.width() / 2,
             center_y - item_rect.height() / 2
         )
+
+        # Center the viewport on the pixmap item
+        self._graphics_view.centerOn(self._pixmap_item)
 
         if self._zoom_value_label:
             self._zoom_value_label.setText(f"{int(self._zoom_factor * 100)}%")
@@ -404,8 +410,11 @@ class ImagePanel(QWidget):
                 QMessageBox.critical(self, "Error", f"Failed to save image: {str(e)}")
 
     def set_image(self, image: np.ndarray):
-        """Set the image to display."""
+        """Set the image to display and center it."""
         self._image = image
+        # Reset pan offset to center the image
+        self._pan_offset_x = 0.0
+        self._pan_offset_y = 0.0
         self.fit_to_window()
 
     def clear(self):
