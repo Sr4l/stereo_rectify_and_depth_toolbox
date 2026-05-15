@@ -54,9 +54,11 @@ class ExportDialog(QDialog):
 
         self._disparity_radio = QRadioButton("Disparity values")
         self._disparity_radio.setChecked(True)
+        self._disparity_radio.toggled.connect(self._on_type_changed)
         type_layout.addWidget(self._disparity_radio)
 
         self._depth_radio = QRadioButton("Depth values (mm)")
+        self._depth_radio.toggled.connect(self._on_type_changed)
         type_layout.addWidget(self._depth_radio)
 
         layout.addWidget(type_group)
@@ -117,6 +119,10 @@ class ExportDialog(QDialog):
         """Generate default filename based on format and type."""
         type_suffix = "depth" if self._depth_radio.isChecked() else "disparity"
         return f"exported_{type_suffix}"
+
+    def _on_type_changed(self, checked: bool):
+        """Update filename when export type changes."""
+        self._name_edit.setText(self._default_filename())
 
     def _browse_filename(self):
         """Open file browser to set export path."""
