@@ -7,4 +7,5 @@ torchvision>=0.8.1
 opt_einsum
 imageio
 scikit-image
+scipy
 gdown

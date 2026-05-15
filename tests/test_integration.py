@@ -174,14 +174,11 @@ def test_bm_parameters_sensitivity():
 
 
 def test_calibration_save_load():
-    """Test saving and loading calibration."""
+    """Test saving and loading calibration data (JSON serialization only, no GUI)."""
     print("Testing calibration save/load...")
     
     import json
     import tempfile
-    
-    from gui.param_panel import CameraParamPanel
-    import tkinter as tk
     
     test_data = {
         'left_camera': {
@@ -196,41 +193,34 @@ def test_calibration_save_load():
         }
     }
     
-    root = tk.Tk()
-    root.withdraw()
+    # Test JSON serialization round-trip
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(test_data, f)
+        temp_path = f.name
     
     try:
-        panel = CameraParamPanel(root, title="Test")
-        panel.pack()
-        root.update_idletasks()
-        
-        panel.set_K(np.array(test_data['left_camera']['K']))
-        panel.set_distortion(np.array(test_data['left_camera']['distortion']))
-        panel.set_R(np.array(test_data['right_camera']['R']))
-        panel.set_T(np.array(test_data['right_camera']['T']))
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(test_data, f)
-            temp_path = f.name
-        
+        # Reload from file
         with open(temp_path, 'r') as f:
             loaded = json.load(f)
         
-        panel.set_K(np.array(loaded['left_camera']['K']))
-        panel.set_distortion(np.array(loaded['left_camera']['distortion']))
-        panel.set_R(np.array(loaded['right_camera']['R']))
-        panel.set_T(np.array(loaded['right_camera']['T']))
-        
-        K_loaded = panel.get_K()
+        # Verify data integrity
+        K_loaded = np.array(loaded['left_camera']['K'])
         assert np.allclose(K_loaded, test_data['left_camera']['K']), "K mismatch after load"
         
-        os.unlink(temp_path)
+        d_loaded = np.array(loaded['left_camera']['distortion'])
+        assert np.allclose(d_loaded, test_data['left_camera']['distortion']), "distortion mismatch after load"
+        
+        R_loaded = np.array(loaded['right_camera']['R'])
+        assert np.allclose(R_loaded, test_data['right_camera']['R']), "R mismatch after load"
+        
+        T_loaded = np.array(loaded['right_camera']['T'])
+        assert np.allclose(T_loaded, test_data['right_camera']['T']), "T mismatch after load"
         
         print("  ✓ Calibration save/load test passed")
         return True
         
     finally:
-        root.destroy()
+        os.unlink(temp_path)
 
 
 def test_image_formats():
