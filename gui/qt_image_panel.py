@@ -444,7 +444,6 @@ class ImagePanel(QWidget):
             return self._image.shape[:2]
         return (0, 0)
 
-
 class ThumbnailPanel(QWidget):
     """Small thumbnail image panel for image preview."""
 

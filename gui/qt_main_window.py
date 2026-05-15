@@ -649,26 +649,65 @@ class StereoCalibrationGUI(QMainWindow):
 
         # Visualization controls (all in one row)
         vis_group = QGroupBox("Visualization Controls")
-        vis_layout = QHBoxLayout(vis_group)
-        vis_layout.setSpacing(10)
+        vis_layout = QVBoxLayout(vis_group)
+        vis_layout.setSpacing(8)
 
+        # Row 1: Update button, view mode, colormap
+        vis_row1 = QHBoxLayout()
         self._btn_update_depth = QPushButton("Update Depth")
         self._btn_update_depth.clicked.connect(self._update_depth)
-        vis_layout.addWidget(self._btn_update_depth)
+        vis_row1.addWidget(self._btn_update_depth)
 
-        vis_layout.addWidget(QLabel("View:"))
+        vis_row1.addStretch()
+        vis_row1.addWidget(QLabel("View:"))
         self._view_mode_combo = QComboBox()
         self._view_mode_combo.addItems(["disparity", "depth (m)"])
-        self._view_mode_combo.currentTextChanged.connect(self._update_depth)
-        vis_layout.addWidget(self._view_mode_combo)
+        self._view_mode_combo.currentTextChanged.connect(self._on_view_mode_change)
+        vis_row1.addWidget(self._view_mode_combo)
 
-        vis_layout.addWidget(QLabel("Colormap:"))
+        vis_row1.addWidget(QLabel("Colormap:"))
         self._colormap_combo = QComboBox()
         self._colormap_combo.addItems(["JET", "VIRIDIS", "MAGMA", "INFERNO", "PLASMA", "CIVIDIS"])
-        self._colormap_combo.currentTextChanged.connect(self._update_depth)
-        vis_layout.addWidget(self._colormap_combo)
+        self._colormap_combo.currentTextChanged.connect(self._on_colormap_change)
+        vis_row1.addWidget(self._colormap_combo)
+        vis_layout.addLayout(vis_row1)
 
-        vis_layout.addStretch()
+        # Row 2: Min/Max value controls with auto checkbox
+        vis_row2 = QHBoxLayout()
+        vis_row2.addWidget(QLabel("Range:"))
+        vis_row2.addWidget(QLabel("Min:"))
+        self._range_min_spinbox = QLineEdit("Auto")
+        self._range_min_spinbox.setFixedWidth(80)
+        self._range_min_spinbox.setToolTip("Minimum value for colormap scaling. Leave 'Auto' for automatic range detection.")
+        vis_row2.addWidget(self._range_min_spinbox)
+
+        vis_row2.addWidget(QLabel("Max:"))
+        self._range_max_spinbox = QLineEdit("Auto")
+        self._range_max_spinbox.setFixedWidth(80)
+        self._range_max_spinbox.setToolTip("Maximum value for colormap scaling. Leave 'Auto' for automatic range detection.")
+        vis_row2.addWidget(self._range_max_spinbox)
+
+        self._auto_range_checkbox = QCheckBox("Auto range")
+        self._auto_range_checkbox.setChecked(True)
+        self._auto_range_checkbox.stateChanged.connect(self._on_auto_range_change)
+        self._auto_range_checkbox.setToolTip("When checked, min/max are auto-detected from data. Uncheck to set manual values.")
+        vis_row2.addWidget(self._auto_range_checkbox)
+
+        self._range_apply_button = QPushButton("Apply Range")
+        self._range_apply_button.clicked.connect(self._update_depth)
+        self._range_apply_button.setToolTip("Apply the min/max range to the colormap")
+        vis_row2.addWidget(self._range_apply_button)
+
+        vis_row2.addStretch()
+        vis_layout.addLayout(vis_row2)
+
+        # Row 3: Range info label
+        vis_row3 = QHBoxLayout()
+        self._range_info_label = QLabel("Range: Auto (data min/max)")
+        self._range_info_label.setStyleSheet("color: gray; font-size: 9pt;")
+        vis_row3.addWidget(self._range_info_label)
+        vis_row3.addStretch()
+        vis_layout.addLayout(vis_row3)
 
         layout.addWidget(vis_group)
 
@@ -688,6 +727,110 @@ class StereoCalibrationGUI(QMainWindow):
         """Handle parameter change with debouncing."""
         self._update_debounce_timer.stop()
         self._update_debounce_timer.start(500)
+
+    def _on_view_mode_change(self, view_mode: str):
+        """Handle view mode change."""
+        self._update_depth()
+
+    def _on_colormap_change(self, colormap_name: str):
+        """Handle colormap change."""
+        self._update_depth()
+
+    def _on_auto_range_change(self, state: int):
+        """Handle auto range checkbox state change."""
+        is_auto = state == 2  # Qt.Checked
+        if is_auto:
+            self._range_min_spinbox.setText("Auto")
+            self._range_max_spinbox.setText("Auto")
+            self._range_min_spinbox.setEnabled(False)
+            self._range_max_spinbox.setEnabled(False)
+            self._range_info_label.setText("Range: Auto (data min/max)")
+            self._range_info_label.setStyleSheet("color: gray; font-size: 9pt;")
+        else:
+            self._range_min_spinbox.setEnabled(True)
+            self._range_max_spinbox.setEnabled(True)
+            self._range_min_spinbox.setText("0")
+            self._range_max_spinbox.setText("100")
+            self._range_info_label.setText("Range: Manual (0 - 100)")
+            self._range_info_label.setStyleSheet("color: black; font-size: 9pt;")
+
+    def _get_colormap_range(self, disparity: np.ndarray, view_mode: str):
+        """Get the min/max range for colormap scaling.
+
+        Returns (min_val, max_val, is_auto) tuple.
+        Uses user-defined values from spinboxes if auto range is disabled.
+        """
+        if self._auto_range_checkbox.isChecked():
+            # Auto mode: use data min/max
+            valid = disparity[disparity > 0]
+            if len(valid) == 0:
+                return 0.0, 1.0, True
+            data_min = float(valid.min())
+            data_max = float(valid.max())
+            return data_min, data_max, True
+
+        # Manual mode: use spinbox values
+        try:
+            min_val = float(self._range_min_spinbox.text())
+        except ValueError:
+            min_val = 0.0
+
+        try:
+            max_val = float(self._range_max_spinbox.text())
+        except ValueError:
+            max_val = 100.0
+
+        if max_val <= min_val:
+            max_val = min_val + 1.0
+
+        return min_val, max_val, False
+
+    def _apply_colormap_with_range(self, data: np.ndarray, colormap_name: str,
+                                     min_val: float, max_val: float, is_auto: bool) -> np.ndarray:
+        """Apply colormap to data using the specified min/max range.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            Input disparity or depth data (float).
+        colormap_name : str
+            OpenCV colormap constant name (e.g., 'JET').
+        min_val : float
+            Minimum value for normalization.
+        max_val : float
+            Maximum value for normalization.
+        is_auto : bool
+            If True, the range is data-driven. If False, user-defined.
+
+        Returns
+        -------
+        np.ndarray
+            Colormap-colored image (uint8, BGR).
+        """
+        colormap = cv2.COLORMAP_JET
+        colormap_map = {
+            'JET': cv2.COLORMAP_JET,
+            'VIRIDIS': cv2.COLORMAP_VIRIDIS,
+            'MAGMA': cv2.COLORMAP_MAGMA,
+            'INFERNO': cv2.COLORMAP_INFERNO,
+            'PLASMA': cv2.COLORMAP_PLASMA,
+            'CIVIDIS': cv2.COLORMAP_CIVIDIS,
+        }
+        cv2_colormap = colormap_map.get(colormap_name, cv2.COLORMAP_JET)
+
+        # Clip to valid range
+        data_clipped = np.clip(data, min_val, max_val)
+
+        # Normalize to 0-255
+        range_val = max_val - min_val
+        if range_val > 0 and is_auto:
+            normalized = ((data_clipped - min_val) / range_val * 255).astype(np.uint8)
+        elif range_val > 0 and not is_auto:
+            normalized = ((data_clipped - min_val) / range_val * 255).astype(np.uint8)
+        else:
+            normalized = np.zeros_like(data_clipped, dtype=np.uint8)
+
+        return cv2.applyColorMap(normalized, cv2_colormap)
 
     def _update_rectification(self):
         """Update rectified images."""
@@ -1069,11 +1212,26 @@ class StereoCalibrationGUI(QMainWindow):
                     # Depth formula: depth (meters) = (baseline_meters * focal_length_pixels) / disparity_pixels
                     depth_map = self.depth_estimator.compute_depth()
                     if depth_map is not None:
+                        # Get colormap range (auto or user-defined)
+                        min_val, max_val, is_auto = self._get_colormap_range(depth_map, view_mode)
+
+                        # Update range info label
+                        if is_auto:
+                            self._range_info_label.setText(
+                                f"Range: Auto ({min_val:.3f} - {max_val:.3f} m)"
+                            )
+                            self._range_info_label.setStyleSheet("color: gray; font-size: 9pt;")
+                        else:
+                            self._range_info_label.setText(
+                                f"Range: Manual ({min_val:.3f} - {max_val:.3f} m)"
+                            )
+                            self._range_info_label.setStyleSheet("color: black; font-size: 9pt;")
+
                         # Use meters consistently - clip to 100 meters maximum for visualization
                         depth_m_clipped = np.clip(depth_map, 0, 100.0)
                         depth_normalized = (
-                            ((depth_m_clipped - depth_m_clipped.min()) /
-                             (depth_m_clipped.max() - depth_m_clipped.min()) * 255)
+                            ((depth_m_clipped - min_val) /
+                             (max_val - min_val) * 255)
                             .astype(np.uint8)
                         )
                         colored_depth = cv2.applyColorMap(depth_normalized, colormap)
@@ -1085,7 +1243,25 @@ class StereoCalibrationGUI(QMainWindow):
                         f"Max: {stats['max']:.3f}m, Mean: {stats['mean']:.3f}m"
                     )
                 else:
-                    colored_disparity = self.depth_estimator.apply_colormap(disparity, colormap)
+                    # Get colormap range for disparity
+                    min_val, max_val, is_auto = self._get_colormap_range(disparity, view_mode)
+
+                    # Update range info label
+                    if is_auto:
+                        self._range_info_label.setText(
+                            f"Range: Auto ({min_val:.2f} - {max_val:.2f} px)"
+                        )
+                        self._range_info_label.setStyleSheet("color: gray; font-size: 9pt;")
+                    else:
+                        self._range_info_label.setText(
+                            f"Range: Manual ({min_val:.2f} - {max_val:.2f} px)"
+                        )
+                        self._range_info_label.setStyleSheet("color: black; font-size: 9pt;")
+
+                    # Apply colormap with user-defined range
+                    colored_disparity = self._apply_colormap_with_range(
+                        disparity, colormap_name, min_val, max_val, is_auto
+                    )
                     self._depth_panel.set_image(colored_disparity)
 
                     stats = self.depth_estimator.get_disparity_stats()
