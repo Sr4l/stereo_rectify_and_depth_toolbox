@@ -659,7 +659,7 @@ class StereoCalibrationGUI(QMainWindow):
 
         vis_layout.addWidget(QLabel("View:"))
         self._view_mode_combo = QComboBox()
-        self._view_mode_combo.addItems(["disparity", "depth (mm)"])
+        self._view_mode_combo.addItems(["disparity", "depth (m)"])
         self._view_mode_combo.currentTextChanged.connect(self._update_depth)
         vis_layout.addWidget(self._view_mode_combo)
 
@@ -1052,23 +1052,29 @@ class StereoCalibrationGUI(QMainWindow):
 
                 view_mode = self._view_mode_combo.currentText()
 
-                if view_mode == "depth (mm)":
+                if view_mode == "depth (m)":
                     # Set camera params from the rectification translation vector
-                    # Baseline = X-component of T (after rectification)
+                    # Baseline = magnitude of translation vector (after rectification)
+                    # IMPORTANT: T must be in meters for depth formula to work correctly
+                    # If your calibration used different units (e.g., mm), convert here.
                     T_right = self._right_param_panel.get_T()
-                    baseline_m = abs(T_right[0])
+                    baseline_m = float(np.linalg.norm(T_right))
                     K_left = self._left_param_panel.get_K()
-                    focal_length_px = (K_left[0, 0] + K_left[1, 1]) / 2.0
+                    # Use fx (horizontal focal length) since disparity is computed along x-axis
+                    # This is more accurate than averaging fx and fy for cameras with
+                    # non-square pixels where fx != fy
+                    focal_length_px = K_left[0, 0]  # fx
                     self.depth_estimator.set_camera_params(baseline_m, focal_length_px)
 
                     # Always compute depth_map so the tooltip can read from it
+                    # Depth formula: depth (meters) = (baseline_meters * focal_length_pixels) / disparity_pixels
                     depth_map = self.depth_estimator.compute_depth()
                     if depth_map is not None:
-                        depth_mm = depth_map * 1000
-                        depth_mm_clipped = np.clip(depth_mm, 0, 10000)
+                        # Use meters consistently - clip to 100 meters maximum for visualization
+                        depth_m_clipped = np.clip(depth_map, 0, 100.0)
                         depth_normalized = (
-                            ((depth_mm_clipped - depth_mm_clipped.min()) /
-                             (depth_mm_clipped.max() - depth_mm_clipped.min()) * 255)
+                            ((depth_m_clipped - depth_m_clipped.min()) /
+                             (depth_m_clipped.max() - depth_m_clipped.min()) * 255)
                             .astype(np.uint8)
                         )
                         colored_depth = cv2.applyColorMap(depth_normalized, colormap)
@@ -1076,8 +1082,8 @@ class StereoCalibrationGUI(QMainWindow):
 
                     stats = self.depth_estimator.get_depth_stats()
                     self._status_label.setText(
-                        f"[{algo}] Depth - Min: {stats['min']*1000:.1f}mm, "
-                        f"Max: {stats['max']*1000:.1f}mm, Mean: {stats['mean']*1000:.1f}mm"
+                        f"[{algo}] Depth - Min: {stats['min']:.3f}m, "
+                        f"Max: {stats['max']:.3f}m, Mean: {stats['mean']:.3f}m"
                     )
                 else:
                     colored_disparity = self.depth_estimator.apply_colormap(disparity, colormap)
@@ -1114,12 +1120,13 @@ class StereoCalibrationGUI(QMainWindow):
 
             view_mode = self._view_mode_combo.currentText()
 
-            if view_mode == "depth (mm)":
+            if view_mode == "depth (m)":
                 # Ensure camera params are set (should already be set by _update_depth)
+                # Use same calculation as _update_depth for consistency
                 T_right = self._right_param_panel.get_T()
-                baseline_m = abs(T_right[0])
+                baseline_m = float(np.linalg.norm(T_right))
                 K_left = self._left_param_panel.get_K()
-                focal_length_px = (K_left[0, 0] + K_left[1, 1]) / 2.0
+                focal_length_px = K_left[0, 0]  # fx - horizontal focal length
 
                 # Only update if params changed (avoids redundant set calls)
                 if (abs(self.depth_estimator.baseline - baseline_m) > 1e-9 or
@@ -1133,14 +1140,14 @@ class StereoCalibrationGUI(QMainWindow):
                         y < self.depth_estimator.depth_map.shape[0] and
                         x < self.depth_estimator.depth_map.shape[1]):
                     depth_m = self.depth_estimator.depth_map[y, x]
-                    depth_mm = depth_m * 1000  # convert meters to mm
                 else:
                     return None
 
-                if depth_mm > 10000:
-                    return f"({x}, {y})  Disparity: {disp_val:.2f}  Depth: >10000mm"
+                # Clip display to 100 meters maximum
+                if depth_m > 100.0:
+                    return f"({x}, {y})  Disparity: {disp_val:.2f}  Depth: >100m"
 
-                return f"({x}, {y})  Disparity: {disp_val:.2f}  Depth: {depth_mm:.1f}mm"
+                return f"({x}, {y})  Disparity: {disp_val:.2f}  Depth: {depth_m:.3f}m"
             else:
                 return f"({x}, {y})  Disparity: {disp_val:.2f}"
 

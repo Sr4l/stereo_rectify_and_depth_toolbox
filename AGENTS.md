@@ -38,6 +38,22 @@ if params['blockSize'] % 2 == 0:
 ### 5. Intrinsic matrix validation
 Focal lengths (fx, fy) must be positive. `core/rectifier.py` auto-corrects to image dimensions with warning.
 
+### 6. Camera calibration units (CRITICAL)
+The translation vector `T` from calibration must be in **meters**.
+The code uses meters consistently throughout for all depth calculations and visualization.
+
+**Depth formula**: `depth (meters) = (baseline_meters * focal_length_pixels) / disparity_pixels`
+
+**Baseline**: `np.linalg.norm(T)` - magnitude of translation vector (must be in meters)
+**Focal length**: `K[0, 0]` (fx) - horizontal focal length in pixels
+
+**If your calibration used different units** (e.g., mm from checkerboard calibration), 
+you must convert T to meters before loading into the GUI:
+- mm → m: divide by 1000
+- cm → m: divide by 100
+
+### 7. Depth calculation logic
+
 ### 6. Depth panel tooltip callback
 The depth panel uses a `value_callback` to display disparity/depth values. The callback `_get_depth_value()` in `main_window.py` reads from `depth_estimator.disparity` and calculates depth in mm using camera parameters.
 
