@@ -18,17 +18,17 @@ MODELS = {
         'desc': 'Best for in-the-wild images (RECOMMENDED)'
     },
     'eth3d': {
-        'url': 'https://drive.google.com/file/d/1G8WJCQt9y55qxQH6QV6PpPvWEbd393g2/view',
+        'url': 'https://drive.google.com/file/d/1-27_cej_dqb3B5ONen25d8ZGNrF2GFHH/view',
         'file': 'raftstereo-eth3d.pth',
         'desc': 'ETH3D dataset - high resolution stereo'
     },
     'sceneflow': {
-        'url': 'https://drive.google.com/file/d/1431RzONPW5x1h_3t527x5r1p4N5qK5K5/view',
+        'url': 'https://drive.google.com/file/d/1WqCGS2DikrBE8Ax0Z52pTtyCLvkt8lR5/view',
         'file': 'raftstereo-sceneflow.pth',
         'desc': 'SceneFlow (FlyingThings3D, Driving, Monkaa)'
     },
     'realtime': {
-        'url': 'https://drive.google.com/file/d/1R4T5u6vW7xY8zA9bC0dE1fG2hH3iJ4jK/view',
+        'url': 'https://drive.google.com/file/d/1iIMunuys09OE4pfSiiP4HXa4lW33SeMT/view',
         'file': 'raftstereo-realtime.pth',
         'desc': 'Fastest model for real-time applications'
     }
