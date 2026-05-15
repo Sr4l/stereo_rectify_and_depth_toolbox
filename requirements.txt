@@ -9,3 +9,4 @@ imageio
 scikit-image
 scipy
 gdown
+ruff

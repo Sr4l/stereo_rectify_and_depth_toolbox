@@ -2,10 +2,11 @@
 
 ## Overview
 
-The Stereo Camera Calibration & Depth Toolbox includes a comprehensive test suite with **30 tests** across three categories:
+The Stereo Camera Calibration & Depth Toolbox includes a comprehensive test suite with **32 tests** across four categories:
 - Core functionality tests (17 tests)
 - GUI component tests (6 tests)
 - Integration tests (7 tests)
+- Linting tests (2 tests - ruff check + ruff format)
 
 ## Running Tests
 
@@ -17,9 +18,10 @@ source venv/bin/activate
 python tests/test_all.py          # Core functionality
 python tests/test_gui.py          # GUI components
 python tests/test_integration.py  # Integration tests
+python tests/test_linting.py      # Linting (ruff)
 
 # Or run all at once
-python tests/test_all.py && python tests/test_gui.py && python tests/test_integration.py
+python tests/test_all.py && python tests/test_gui.py && python tests/test_integration.py && python tests/test_linting.py
 ```
 
 ## Test Categories
@@ -83,6 +85,15 @@ Tests complete workflows and end-to-end functionality.
 - `gui/image_panel.py` - Image display panels
 - `gui/main_window.py` - Main application window
 
+### Linting Tests (`tests/test_linting.py`)
+
+Uses [ruff](https://github.com/astral-sh/ruff) for fast Python linting:
+
+- ✓ Ruff check (linting rules)
+- ✓ Ruff format (code formatting)
+
+Note: The linter excludes `core/RAFT-Stereo/` (third-party submodule), `venv/`, `__pycache__/`, and other non-project directories.
+
 ### Example Data Tested
 All 5 example stereo pairs are tested:
 1. **sphere** - 3D sphere with depth variation
@@ -97,8 +108,9 @@ All 5 example stereo pairs are tested:
 Core Tests:        17/17 passed ✓
 GUI Tests:          6/6  passed ✓
 Integration Tests:  7/7  passed ✓
+Linting Tests:      2/2  passed ✓ (if code passes ruff)
 ---------------------------------
-Total:             30/30 passed ✓
+Total:             32/32 passed ✓
 ```
 
 ## Known Limitations
@@ -160,4 +172,10 @@ test:
     - python tests/test_all.py
     - python tests/test_gui.py
     - python tests/test_integration.py
+    - python tests/test_linting.py  # requires ruff installed
+```
+
+Add `ruff` to your project dependencies:
+```bash
+pip install ruff
 ```
