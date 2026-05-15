@@ -159,7 +159,6 @@ class ExportDialog(QDialog):
                    f"{self._width} columns per row.",
         }
         self._format_desc.setText(descriptions.get(self._selected_format, ""))
-        self._csv_info.setVisible(self._selected_format == "csv")
 
     def _on_export(self):
         """Validate inputs and accept dialog."""
