@@ -21,24 +21,19 @@ self.disparity = (-disparity).numpy().astype(np.float32)  # NOT disparity.numpy(
 slow_fast_gru: bool = True  # NOT False
 ```
 
-### 3. ImagePanel `zoom_var` attribute
-The `zoom_var` attribute only exists when `show_controls=True`. Always check:
+### 3. StereoBM `blockSize` must be odd
+Auto-corrected in `core/depth.py:294` and `core/depth.py:347`:
 ```python
-if hasattr(self, 'zoom_var') and self.zoom_var is not None:
-    self.zoom_var.set(...)
+block_size = self.bm_params.blockSize
+if block_size % 2 == 0:
+    block_size += 1
+block_size = max(5, min(255, block_size))
 ```
 
-### 4. StereoBM `blockSize` must be odd
-Auto-corrected in `gui/main_window.py:_update_depth()`:
-```python
-if params['blockSize'] % 2 == 0:
-    params['blockSize'] += 1
-```
-
-### 5. Intrinsic matrix validation
+### 4. Intrinsic matrix validation
 Focal lengths (fx, fy) must be positive. `core/rectifier.py` auto-corrects to image dimensions with warning.
 
-### 6. Camera calibration units (CRITICAL)
+### 5. Camera calibration units (CRITICAL)
 The translation vector `T` from calibration must be in **meters**.
 The code uses meters consistently throughout for all depth calculations and visualization.
 
@@ -52,10 +47,30 @@ you must convert T to meters before loading into the GUI:
 - mm → m: divide by 1000
 - cm → m: divide by 100
 
-### 7. Depth calculation logic
+### 6. Depth calculation logic
+```python
+# core/depth.py:447-478
+# Depth (meters) = (baseline_meters * focal_length_pixels) / disparity_pixels
+self.depth_map = (bl * fl) / disp
+self.depth_map[~np.isfinite(self.depth_map)] = 0
+self.depth_map[self.depth_map < 0] = 0
+```
 
-### 6. Depth panel tooltip callback
-The depth panel uses a `value_callback` to display disparity/depth values. The callback `_get_depth_value()` in `main_window.py` reads from `depth_estimator.disparity` and calculates depth in mm using camera parameters.
+### 7. StereoBM/SGBM disparity normalization
+Both StereoBM and StereoSGBM output 16-bit fixed-point disparity maps that must be divided by 16.0:
+```python
+self.disparity = self.disparity.astype(np.float32) / 16.0  # NOT self.disparity directly
+```
+
+### 8. Raft model lazy loading
+RAFT model can be lazily loaded via `model_path` parameter in `compute_disparity_raft()`. If not provided, raises `ValueError`. The `load_raft_model()` method can be called separately to pre-load.
+
+### 9. Stereo image normalization
+`normalize_stereo_pair()` in `core/depth.py` applies two-stage normalization before disparity computation:
+1. Global mean-variance matching (affine transform on LAB L-channel)
+2. CLAHE for local illumination variations
+
+Works with both grayscale and BGR color images.
 
 ## RAFT-Stereo Submodule
 
@@ -74,11 +89,12 @@ The code detects missing submodule and shows user-friendly error with git comman
 ## Testing
 
 ```bash
-# Run all tests (all 31 must pass)
-python tests/test_all.py           # Core: 17 tests
-python tests/test_gui.py           # GUI: 6 tests (requires X11 display)
-python tests/test_integration.py   # Integration: 7 tests
-python tests/test_raft_integration.py  # RAFT: 1 test
+# Run all tests (all tests must pass)
+python tests/test_all.py           # Core tests
+python tests/test_gui.py           # GUI tests (requires X11 display)
+python tests/test_integration.py   # Integration tests
+python tests/test_raft_integration.py  # RAFT tests
+python tests/test_linting.py       # Linting checks
 
 # GUI tests require X11 display (use xvfb-run for headless)
 xvfb-run python tests/test_gui.py
@@ -87,15 +103,21 @@ xvfb-run python tests/test_gui.py
 ## Architecture
 
 ```
-main.py              # Entry point
+main.py              # Entry point ( launches PySide6 GUI )
 core/
   rectifier.py       # OpenCV stereoRectify
-  depth.py           # StereoBM, SGBM, RAFT-Stereo depth estimation
+  depth.py           # StereoBM, SGBM, RAFT-Stereo depth estimation + normalize_stereo_pair()
+  raft_stereo_check.py  # RAFT availability detection
   RAFT-Stereo/       # Git submodule (Princeton VL)
+core/utils/
+  input_padder.py    # Input padder for RAFT (divis_by=32 padding)
+  raft_utils.py      # RAFT utility helpers
 gui/
-  main_window.py     # Main application
-  param_panel.py     # Camera parameter inputs (K, distortion, R, T)
-  image_panel.py     # Image display with zoom/pan/tooltip
+  qt_main_window.py  # Main PySide6 application window (StereoCalibrationGUI)
+  qt_param_panel.py  # Camera parameter input panel (K, distortion, R, T)
+  qt_image_panel.py  # Image display with zoom/pan/tooltip (QGraphicsView)
+  theme.py           # Dark/light theme support
+  export_dialog.py   # Export dialog for depth/disparity data
 scripts/
   download_raft_models.py  # Model download utility
 models/              # Pretrained RAFT-Stereo models
@@ -105,47 +127,102 @@ models/              # Pretrained RAFT-Stereo models
 
 ### StereoBM (Block Matching)
 - **Fast**, real-time capable
-- 6 parameters: numDisparities, blockSize, minDisparity, uniquenessRatio, speckleWindowSize, speckleRange
+- 6 UI parameters (additional params in StereoBMParams: disp12MaxDiff, preFilterCap, textureThreshold, mode)
 - Best for: texture-rich scenes, quick testing
 
 ### StereoSGBM (Semi-Global Block Matching)
 - **Slower** (2-3x BM), better quality
-- 9 parameters: adds P1, P2, preFilterCap
+- 9 UI parameters (adds P1, P2, preFilterCap)
 - Best for: smooth surfaces, edge preservation
 
 ### RAFT-Stereo (Deep Learning)
 - **Requires**: PyTorch, pretrained model (~45MB)
 - **Slow on CPU**, fast on GPU
-- 2 parameters: valid_iters, n_downsample
+- 2 UI parameters: valid_iters, n_downsample
 - Best for: challenging scenes, state-of-the-art accuracy
 - **Models**: middlebury (recommended), eth3d, sceneflow, realtime
 
-## GUI Layout
+## GUI Layout (PySide6/Qt6)
 
-- **Left**: Camera parameters (scrollable)
-- **Center**: Rectified left/right images
-- **Right**: 
-  - Depth visualization panel (tooltip shows disparity/depth)
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [Calibration]         │  [Camera Images]    │  [Depth Map]        │
+│  Save/Load Calib.      │  ┌──────────┬──────┐ │  [Disparity]        │
+│                          │  │ Left     │Right │ │                     │
+│  [Left Camera Params]   │  │ Camera   │Cmera │ │  Algorithm Selector │
+│  - fx, fy, cx, cy       │  └──────────┴──────┘ │  (BM | SGBM | RAFT) │
+│  - Distortion (k1-k3)   │                      │                     │
+│  - Rotation R (3x3)     │  [Synchronized Zoom │ │  BM/SGBM Parameters │
+│  - Translation T (3x1)  │   Control Slider]   │  (dynamic)          │
+│                         │                      │                     │
+│  [Right Camera Params]  │  [Rectified Views]  │  Visualization Ctrl  │
+│  - Same structure       │  ┌──────────┬──────┐ │  - View mode        │
+│                         │  │ Left     │Right │ │  - Colormap         │
+│  [Epipolar/View Options]│  │Rectfied  │Rectf │ │  - Range min/max    │
+│  - Show Epipolar Lines  │  └──────────┴──────┘ │  - Auto range       │
+│  - View: rectified/gray │                     │                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+- **Left Panel**: Calibration buttons, scrollable camera parameters (intrinsics, distortion, extrinsics)
+- **Center Panel**: 
+  - Camera images (left/right) with load buttons
+  - Synchronized zoom control (slider + Fit/1:1 buttons)
+  - Rectified views with epipolar line toggle and view mode selector
+  - Save rectified images button
+- **Right Panel**:
+  - Depth/disparity visualization panel (with per-image export)
   - Algorithm selector (BM | SGBM | RAFT)
-  - Algorithm-specific parameters (dynamic based on selection)
-  - Visualization Controls (view mode: disparity/depth, colormap)
+  - Algorithm-specific parameter sliders (dynamic based on selection)
+  - Visualization controls (view mode, colormap, min/max range with auto checkbox)
+  - RAFT model path, browse, and download buttons
+
+## Key UI Features
+
+### Synchronized Zoom Control
+All four image panels (camera left/right, rectified left/right) share synchronized zoom via a slider. Zoom values propagate across all panels with recursive-update prevention.
+
+### Colormap Options
+JET, VIRIDIS, MAGMA, INFERNO, PLASMA, CIVIDIS
+
+### Theme Support
+Dark/light theme toggle (`Ctrl+T`). Theme preference is persisted via QSettings.
+
+### Context Menu
+Right-click on any image panel for: Save Image, Reset View, Copy to Clipboard
+
+### Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+O` | Load left image |
+| `Ctrl+R` | Load right image |
+| `Ctrl+S` | Save rectified images |
+| `Ctrl+L` | Load calibration |
+| `Ctrl+Shift+S` | Save calibration |
+| `Ctrl+T` | Toggle dark/light theme |
+| `F5` | Refresh rectification |
 
 ## Visualization Controls
 
-- **View mode**: Toggle between "disparity" (pixels) and "depth (mm)"
-  - Depth formula: `depth = (baseline × focal_length) / disparity × 1000`
+- **View mode**: Toggle between "disparity" (pixels) and "depth (m)"
+  - Depth formula: `depth (m) = (baseline × focal_length) / disparity`
 - **Colormap**: JET, VIRIDIS, MAGMA, INFERNO, PLASMA, CIVIDIS
+- **Range control**: Min/Max values for colormap scaling with Auto checkbox for automatic range detection
 
 ## Example Data
 
 Use synthetic examples in `examples/`:
 ```bash
-examples/circles_left.png
-examples/circles_right.png
-examples/circles_calibration.json
+examples/tsukuba_lowres_left.png
+examples/tsukuba_lowres_right.png
+examples/tsukuba_lowres_calibration.json
+
+examples/tsukuba_highres_left.png
+examples/tsukuba_highres_right.png
+examples/tsukuba_highres_calibration.json
 ```
 
-All examples have ground truth calibration. See `examples/README.md` for recommended parameters per dataset.
+All examples use the Tsukuba Stereo Dataset from CVLab, University of Tsukuba.
 
 ## Calibration File Format
 
@@ -158,22 +235,18 @@ All examples have ground truth calibration. See `examples/README.md` for recomme
 
 ## Key Dependencies
 
-**Core**: opencv-python>=4.10.0, numpy>=2.0.0, Pillow>=8.0.0, tkinter
+**Core**: opencv-python>=4.10.0, numpy>=2.0.0, Pillow>=8.0.0
 
-**RAFT-Stereo (optional)**: torch>=1.7.0, torchvision>=0.8.1, gdown
+**GUI**: PySide6 (Qt6 for Python)
+
+**RAFT-Stereo (optional)**: torch>=1.7.0, torchvision>=0.8.1, gdown, scipy
 
 ## Known Limitations
 
 1. Synthetic examples work best; real images need proper calibration
 2. Textureless regions produce poor disparity (all algorithms)
 3. GUI tests require X11 display (use `xvfb-run` for headless)
-4. Depth visualization clips to 10000mm maximum
+4. Depth visualization clips to maximum values based on range settings
 5. RAFT-Stereo: First load is slow (model initialization), GPU recommended
 6. **Depth values are NOT validated** - experimental only (see README warning)
-
-## Files to Read First
-
-1. `core/depth.py` - Depth estimation logic, RAFT integration
-2. `gui/main_window.py` - GUI logic, algorithm switching, error handling
-3. `core/raft_stereo_check.py` - RAFT availability detection
-4. `tests/test_raft_integration.py` - RAFT testing examples
+7. StereoBM and SGBM both use OpenCV's 16-fixed point format (divide by 16.0)

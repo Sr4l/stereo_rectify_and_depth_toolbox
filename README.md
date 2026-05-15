@@ -6,13 +6,13 @@ A Python GUI toolbox for testing and tuning stereo rectification parameters and 
 
 *Figure 1: Graphical user interface of the Stereo Rectification & Depth Toolbox showing camera parameter controls (left), rectified image display (center), and depth/disparity visualization with algorithm parameters (right).*
 
-> ⚠️ **Warning**: The depth calculation functionality has **not been validated** for accuracy. The results produced by this toolbox, especially depth values in millimeters, should be considered **experimental and unverified**. Do not use this toolbox for applications requiring accurate depth measurements without independent validation.
+> ⚠️ **Warning**: The depth calculation functionality has **not been validated** for accuracy. The results produced by this toolbox, especially depth values in meters, should be considered **experimental and unverified**. Do not use this toolbox for applications requiring accurate depth measurements without independent validation.
 
 ## Purpose
 
 This toolbox helps you:
 - **Test stereo rectification parameters** (intrinsics, extrinsics, distortion)
-- **Compare disparity/depth results** between StereoBM and StereoSGBM algorithms
+- **Compare disparity/depth results** between StereoBM, StereoSGBM, and RAFT-Stereo algorithms
 - **Tune algorithm parameters** interactively with real-time feedback
 - **Validate camera calibration** by visualizing rectified images and epipolar lines
 
@@ -24,10 +24,15 @@ This toolbox helps you:
   - **StereoSGBM** (Semi-Global Block Matching): Slower but higher quality with better edge preservation
   - **RAFT-Stereo** (Deep Learning): State-of-the-art accuracy using neural networks (requires PyTorch)
 - **Interactive Parameter Tuning**: Adjust algorithm parameters with real-time disparity/depth preview
-- **Depth/Disparity Visualization**: Toggle between disparity (pixels) and depth (mm) views
+- **Depth/Disparity Visualization**: Toggle between disparity (pixels) and depth (meters) views
+- **Synchronized Zoom Control**: Zoom across all four image panels simultaneously (camera views + rectified views)
 - **Multiple Colormaps**: JET, VIRIDIS, MAGMA, INFERNO, PLASMA, CIVIDIS
+- **Custom Range Control**: Manual min/max colormap scaling with auto-detection option
 - **Epipolar Line Visualization**: Verify rectification accuracy by checking epipolar line alignment
-- **Import/Export**: Save and load calibration files in JSON format
+- **Import/Export**: Save and load calibration files in JSON format; export depth/disparity images and data
+- **Dark/Light Theme**: Toggle between themes with `Ctrl+T`, preference persisted via QSettings
+- **Context Menus**: Right-click on any image panel for Save Image, Reset View, Copy to Clipboard
+- **Keyboard Shortcuts**: Full keyboard shortcut support for common operations
 
 ## Requirements
 
@@ -35,7 +40,7 @@ This toolbox helps you:
 - OpenCV 4.10.0 or higher (required for NumPy 2.x compatibility)
 - NumPy 2.0.0 or higher
 - Pillow 8.0.0 or higher
-- PySide6 (GUI framework)
+- PySide6 (Qt6 for Python GUI framework)
 
 ### Optional (for RAFT-Stereo deep learning support)
 
@@ -72,38 +77,38 @@ This toolbox helps you:
    python3 -m venv venv
    ```
 
-4. **Activate virtual environment:**
+5. **Activate virtual environment:**
    ```bash
    source venv/bin/activate
    ```
 
-5. **Install Python dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+6. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-6. **Optional: Install PyTorch for RAFT-Stereo support**
-    ```bash
-    # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
-    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-    
-    # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
-    # Visit https://pytorch.org for CUDA-specific installation commands
-    pip install torch torchvision
-    ```
+7. **Optional: Install PyTorch for RAFT-Stereo support**
+   ```bash
+   # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
+   pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-7. **Optional: Download pretrained RAFT-Stereo model**
-    ```bash
-    # Download recommended Middlebury model
-    python scripts/download_raft_models.py --model middlebury
-    
-    # Available models: middlebury (recommended), eth3d, sceneflow, realtime
-    ```
+   # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
+   # Visit https://pytorch.org for CUDA-specific installation commands
+   pip install torch torchvision
+   ```
 
-8. **Run the application:**
-    ```bash
-    python main.py
-    ```
+8. **Optional: Download pretrained RAFT-Stereo model**
+   ```bash
+   # Download recommended Middlebury model
+   python scripts/download_raft_models.py --model middlebury
+
+   # Available models: middlebury (recommended), eth3d, sceneflow, realtime
+   ```
+
+9. **Run the application:**
+   ```bash
+   python main.py
+   ```
 
 ### Windows
 
@@ -127,35 +132,35 @@ This toolbox helps you:
    py -3.11 -m venv venv
    ```
 
-4. **Activate virtual environment:**
+5. **Activate virtual environment:**
    ```cmd
    venv\Scripts\activate
    ```
 
-5. **Install Python dependencies:**
-    ```cmd
-    pip install -r requirements.txt
-    ```
+6. **Install Python dependencies:**
+   ```cmd
+   pip install -r requirements.txt
+   ```
 
-6. **Optional: Install PyTorch for RAFT-Stereo support**
-    ```cmd
-    # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
-    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-    
-    # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
-    # Visit https://pytorch.org for CUDA-specific installation commands
-    pip install torch torchvision
-    ```
+7. **Optional: Install PyTorch for RAFT-Stereo support**
+   ```cmd
+   # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
+   pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-7. **Optional: Download pretrained RAFT-Stereo model**
-    ```cmd
-    python scripts\download_raft_models.py --model middlebury
-    ```
+   # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
+   # Visit https://pytorch.org for CUDA-specific installation commands
+   pip install torch torchvision
+   ```
 
-8. **Run the application:**
-    ```cmd
-    python main.py
-    ```
+8. **Optional: Download pretrained RAFT-Stereo model**
+   ```cmd
+   python scripts\download_raft_models.py --model middlebury
+   ```
+
+9. **Run the application:**
+   ```cmd
+   python main.py
+   ```
 
 ### macOS
 
@@ -181,30 +186,30 @@ This toolbox helps you:
    source venv/bin/activate
    ```
 
-4. **Install Python dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+5. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-5. **Optional: Install PyTorch for RAFT-Stereo support**
-    ```bash
-    # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
-    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-    
-    # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
-    # Visit https://pytorch.org for CUDA-specific installation commands
-    pip install torch torchvision
-    ```
+6. **Optional: Install PyTorch for RAFT-Stereo support**
+   ```bash
+   # CPU-only version (slower inference, smaller in size, no CUDA or NVIDIA GPU needed)
+   pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-6. **Optional: Download pretrained RAFT-Stereo model**
-    ```bash
-    python scripts/download_raft_models.py --model middlebury
-    ```
+   # CPU & GPU version (recommended, bigger download, uses CUDA if possible)
+   # Visit https://pytorch.org for CUDA-specific installation commands
+   pip install torch torchvision
+   ```
 
-7. **Run the application:**
-    ```bash
-    python main.py
-    ```
+7. **Optional: Download pretrained RAFT-Stereo model**
+   ```bash
+   python scripts/download_raft_models.py --model middlebury
+   ```
+
+8. **Run the application:**
+   ```bash
+   python main.py
+   ```
 
 ## Usage
 
@@ -221,6 +226,18 @@ venv\Scripts\activate
 python main.py
 ```
 
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+O` | Load left image |
+| `Ctrl+R` | Load right image |
+| `Ctrl+S` | Save rectified images |
+| `Ctrl+L` | Load calibration |
+| `Ctrl+Shift+S` | Save calibration |
+| `Ctrl+T` | Toggle dark/light theme |
+| `F5` | Refresh rectification |
+
 ### Workflow
 
 #### Quick Test with Example Images
@@ -233,17 +250,17 @@ The toolbox includes example datasets in the `examples/` folder. To quickly test
    ```
 
 2. **Load Tsukuba example images:**
-   - Click **Load Left Image** → navigate to `examples/tsukuba_left.png`
-   - Click **Load Right Image** → navigate to `examples/tsukuba_right.png`
+   - Click **Load Left Image** → navigate to `examples/tsukuba_lowres_left.png` (or `examples/tsukuba_highres_left.png`)
+   - Click **Load Right Image** → navigate to `examples/tsukuba_lowres_right.png` (or `examples/tsukuba_highres_right.png`)
 
 3. **Load Tsukuba calibration:**
-   - Click **Load Calibration** → select `examples/tsukuba_calibration.json`
+   - Click **Load Calibration** → select `examples/tsukuba_lowres_calibration.json` (or `examples/tsukuba_highres_calibration.json`)
    - The rectified images should appear immediately
 
 4. **Test depth estimation:**
    - Select **SGBM** algorithm for best quality
    - Adjust parameters if needed (default values work well for Tsukuba)
-   - Toggle between **disparity** and **depth (mm)** views
+   - Toggle between **disparity** and **depth (m)** views
    - Try different colormaps (VIRIDIS or JET work well)
 
 #### Using RAFT-Stereo (Deep Learning)
@@ -258,12 +275,17 @@ If you have PyTorch installed and downloaded a pretrained model:
    - **Iters**: Number of refinement iterations (default: 32, higher = more accurate but slower)
    - **Downsample**: Resolution factor (default: 2, lower = higher resolution but more memory)
 
-3. **Run inference:**
+3. **Configure model path:**
+   - Use the **Browse...** button to select a model, or
+   - Use the **Download...** button to download a pretrained model
+   - Available models: middlebury (recommended), eth3d, sceneflow, realtime
+
+4. **Run inference:**
    - RAFT-Stereo will automatically compute disparity when you select it
    - First run may take time as the model loads
    - GPU acceleration is automatically used if CUDA is available
 
-4. **Compare results:**
+5. **Compare results:**
    - Switch between BM, SGBM, and RAFT to compare quality
    - RAFT typically produces the best results on challenging scenes
 
@@ -278,17 +300,27 @@ If you have PyTorch installed and downloaded a pretrained model:
    - **Option B**: Manually enter intrinsics, distortion, and extrinsics
    - Verify rectification by checking that corresponding points align horizontally
    - Enable **Show Epipolar Lines** to verify alignment (lines should be horizontal)
+   - Toggle between **rectified** and **rectified gray** views for different displays
 
 3. **Compare stereo algorithms:**
-   - Select **BM** or **SGBM** from the algorithm dropdown
+   - Select **BM**, **SGBM**, or **RAFT** from the algorithm dropdown
    - Adjust algorithm-specific parameters using the sliders
    - Observe real-time changes in the disparity/depth visualization
+   - Use the **Synchronized Zoom Control** to inspect all image panels at the same zoom level
 
 4. **Evaluate depth results:**
-   - Toggle between **disparity** (pixel shift) and **depth (mm)** views
+   - Toggle between **disparity** (pixel shift) and **depth (m)** (meters) views
    - Hover over the depth map to see values at specific pixels
-   - Try different colormaps for better visualization
-   - Compare BM vs SGBM results by switching algorithms
+   - Try different colormaps (JET, VIRIDIS, MAGMA, INFERNO, PLASMA, CIVIDIS)
+   - Use custom min/max range for colormap scaling (uncheck "Auto range" to set manual values)
+   - Compare BM vs SGBM vs RAFT results by switching algorithms
+   - Export depth/disparity images via the export button on the depth panel
+
+5. **Save your work:**
+   - **Save Calibration** to persist camera parameters as JSON
+   - **Save Rectified Images** to save the current rectified view
+   - **Export Depth/Disparity Image** to save the visualized depth map as an image
+   - **Export Depth/Disparity Data** to save the numerical depth/disparity data
 
 ### Key Differences: BM vs SGBM vs RAFT-Stereo
 
@@ -300,15 +332,6 @@ If you have PyTorch installed and downloaded a pretrained model:
 | **Requirements** | OpenCV only | OpenCV only | PyTorch + pretrained model |
 | **Best for** | Quick testing, texture-rich scenes | High-quality depth, smooth surfaces | Challenging scenes, best accuracy |
 | **Hardware** | CPU | CPU | GPU recommended |
-
-### Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+O` | Load left image |
-| `Ctrl+R` | Load right image |
-| `Ctrl+S` | Save rectified images |
-| `F5` | Refresh rectification |
 
 ## Calibration File Format
 
@@ -328,6 +351,10 @@ Calibration files are saved as JSON:
   }
 }
 ```
+
+**Note**: The translation vector `T` must be in **meters**. If your calibration used different units (e.g., mm from checkerboard calibration), convert to meters before loading:
+- mm → m: divide by 1000
+- cm → m: divide by 100
 
 ## Algorithm Parameters
 
@@ -383,24 +410,14 @@ Download models using:
 python scripts/download_raft_models.py --model <model_name>
 ```
 
-## Testing
+## Visualization Controls
 
-Run the test suite to verify the toolbox functionality:
-
-```bash
-# Activate virtual environment first
-source venv/bin/activate  # Linux/macOS
-venv\Scripts\activate     # Windows
-
-# Run all tests (core functionality)
-python tests/test_all.py
-
-# Run GUI tests (requires X11 display)
-python tests/test_gui.py
-
-# Run integration tests
-python tests/test_integration.py
-```
+- **View mode**: Toggle between "disparity" (pixel shift) and "depth (m)" (meters)
+  - Depth formula: `depth (m) = (baseline × focal_length) / disparity`
+- **Colormap**: JET, VIRIDIS, MAGMA, INFERNO, PLASMA, CIVIDIS
+- **Range control**: Min/Max values for colormap scaling with Auto checkbox for automatic range detection
+  - When "Auto range" is checked, min/max are automatically detected from the data
+  - Uncheck to set manual min/max values
 
 ## Architecture
 
@@ -410,18 +427,25 @@ stereo_rectify_and_depth_toolbox/
 ├── core/
 │   ├── rectifier.py     # Stereo rectification (OpenCV)
 │   ├── depth.py         # Depth estimation (BM, SGBM & RAFT-Stereo)
-│   └── RAFT-Stereo/     # RAFT-Stereo deep learning model
+│   ├── raft_stereo_check.py  # RAFT availability detection
+│   └── RAFT-Stereo/     # RAFT-Stereo deep learning model (git submodule)
+├── core/utils/
+│   ├── input_padder.py  # Input padder for RAFT (divis_by=32 padding)
+│   └── raft_utils.py    # RAFT utility helpers
 ├── gui/
-│   ├── qt_main_window.py   # Main Qt application window (PySide6)
+│   ├── qt_main_window.py   # Main Qt6 application window (PySide6)
 │   ├── qt_param_panel.py   # Camera parameter panel (PySide6)
 │   ├── qt_image_panel.py   # Image display with zoom/pan (PySide6)
-│   └── theme.py            # Qt theming (dark/light mode support)
+│   ├── theme.py            # Qt theming (dark/light mode support)
+│   └── export_dialog.py    # Export dialog for depth/disparity data
 ├── scripts/
 │   └── download_raft_models.py  # Model download utility
 ├── tests/
 │   ├── test_all.py      # Core tests
 │   ├── test_gui.py      # GUI tests
-│   └── test_integration.py
+│   ├── test_integration.py
+│   ├── test_raft_integration.py
+│   └── test_linting.py
 ├── examples/            # Sample images and calibrations
 ├── models/              # Pretrained RAFT-Stereo models
 └── requirements.txt     # Python dependencies
@@ -430,6 +454,16 @@ stereo_rectify_and_depth_toolbox/
 ## Example Data
 
 The included example datasets use images from the **Tsukuba Stereo Dataset** provided by CVLab, University of Tsukuba.
+
+- **Low Resolution**:
+  - `examples/tsukuba_lowres_left.png`
+  - `examples/tsukuba_lowres_right.png`
+  - `examples/tsukuba_lowres_calibration.json`
+
+- **High Resolution**:
+  - `examples/tsukuba_highres_left.png`
+  - `examples/tsukuba_highres_right.png`
+  - `examples/tsukuba_highres_calibration.json`
 
 - **Source**: [CVLab Tsukuba Stereo Dataset](https://home.cvlab.cs.tsukuba.ac.jp/dataset)
 - **License**: The dataset is provided for research and educational purposes
@@ -504,6 +538,11 @@ RAFT-Stereo is designed for GPU acceleration. For better performance:
 
 ### RAFT-Stereo produces all zeros or constant values
 This was a bug in earlier versions. Make sure you have the latest version where the disparity sign is correctly handled. The RAFT model outputs optical flow (negative values), which must be negated to get positive disparity values.
+
+### Synchronized Zoom not working
+- Ensure all four image panels (camera left/right, rectified left/right) have images loaded
+- The zoom slider in the center panel controls all panels simultaneously
+- Use **Fit** to fit images to viewport or **1:1** for pixel-perfect view
 
 ## License
 
