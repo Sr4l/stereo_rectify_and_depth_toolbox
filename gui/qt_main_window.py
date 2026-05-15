@@ -41,6 +41,7 @@ from PySide6.QtGui import QAction, QKeySequence
 from .qt_image_panel import ImagePanel
 from .qt_param_panel import CameraParamPanel
 from .theme import set_app_theme, get_current_theme, get_initial_theme, ThemeName
+from .export_dialog import ExportDialog
 from core.rectifier import StereoRectifier
 from core.depth import DepthEstimator, normalize_stereo_pair
 
@@ -531,6 +532,7 @@ class StereoCalibrationGUI(QMainWindow):
             show_controls=True,
             value_callback=self._get_depth_value
         )
+        self._depth_panel.set_export_callback(self._export_depth_data)
         depth_layout.addWidget(self._depth_panel)
         layout.addWidget(depth_group, 1)
 
@@ -1257,6 +1259,110 @@ class StereoCalibrationGUI(QMainWindow):
             f"Switching to BM algorithm."
         )
         QMessageBox.critical(self, "RAFT-Stereo Submodule Not Initialized", message)
+
+    def _export_depth_data(self):
+        """Export depth or disparity data to file."""
+        if self.depth_estimator.disparity is None:
+            QMessageBox.warning(self, "Warning", "No depth/disparity data to export. Compute depth first.")
+            return
+
+        disparity = self.depth_estimator.disparity
+        height, width = disparity.shape
+
+        # Show export dialog
+        dialog = ExportDialog(self, data_shape=(height, width))
+        if dialog.exec() != 1:  # Accepted
+            return
+
+        file_path = dialog.get_file_path()
+        export_type = dialog.get_export_type()
+        file_format = dialog.get_format()
+
+        if not file_path:
+            return
+
+        # Ensure correct extension
+        ext_map = {
+            "npy": ".npy",
+            "mat": ".mat",
+            "tiff": ".tiff",
+            "csv": ".csv",
+        }
+        ext = ext_map.get(file_format, "")
+        if not file_path.lower().endswith(ext.lower()):
+            file_path += ext
+
+        try:
+            if export_type == "depth":
+                depth_map = self.depth_estimator.compute_depth()
+                if depth_map is None:
+                    QMessageBox.warning(self, "Warning", "Cannot compute depth data. Check camera parameters.")
+                    return
+                data_to_export = depth_map
+            else:
+                data_to_export = disparity
+
+            if file_format == "npy":
+                np.save(file_path, data_to_export)
+            elif file_format == "mat":
+                self._save_mat(file_path, data_to_export, export_type)
+            elif file_format == "tiff":
+                self._save_tiff(file_path, data_to_export)
+            elif file_format == "csv":
+                self._save_csv(file_path, data_to_export)
+
+            self._status_label.setText(f"Data exported to {os.path.basename(file_path)}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to export data: {str(e)}")
+
+    def _save_mat(self, file_path: str, data: np.ndarray, export_type: str):
+        """Save data as MATLAB .mat file using scipy."""
+        try:
+            from scipy import io
+        except ImportError:
+            QMessageBox.critical(
+                self,
+                "Error",
+                "scipy is required for MATLAB .mat format.\nInstall with: pip install scipy"
+            )
+            return
+
+        variable_name = "depth" if export_type == "depth" else "disparity"
+        io.savemat(file_path, {variable_name: data})
+
+    def _save_tiff(self, file_path: str, data: np.ndarray):
+        """Save data as TIFF file."""
+        try:
+            from PIL import Image
+        except ImportError:
+            QMessageBox.critical(
+                self,
+                "Error",
+                "Pillow is required for TIFF export.\nInstall with: pip install Pillow"
+            )
+            return
+
+        # Normalize data to 0-65535 for 16-bit TIFF
+        data_min = data.min()
+        data_max = data.max()
+        data_range = data_max - data_min
+
+        if data_range == 0:
+            normalized = np.zeros(data.shape, dtype=np.uint16)
+        else:
+            normalized = ((data - data_min) / data_range * 65535).astype(np.uint16)
+
+        img = Image.fromarray(normalized, mode='I;16')
+        img.save(file_path)
+
+    def _save_csv(self, file_path: str, data: np.ndarray):
+        """Save data as CSV with one column per pixel column."""
+        # Handle NaN/inf values by converting to string-friendly format
+        clean_data = np.where(
+            np.isfinite(data), data, np.nan
+        )
+        np.savetxt(file_path, clean_data, delimiter=',', fmt='%.6f')
 
 
 class ParamControlsGroup:

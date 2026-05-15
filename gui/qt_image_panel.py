@@ -61,7 +61,9 @@ class ImagePanel(QWidget):
         self._fit_button: Optional[QPushButton] = None
         self._one_to_one_button: Optional[QPushButton] = None
         self._save_button: Optional[QPushButton] = None
+        self._export_button: Optional[QPushButton] = None
         self._zoom_slider: Optional[QSlider] = None
+        self._export_callback = None
 
         self._create_widgets()
         # No per-widget stylesheet needed — global theme handles all styling
@@ -119,6 +121,9 @@ class ImagePanel(QWidget):
         self._save_button = QPushButton("Save image")
         self._save_button.clicked.connect(self.save_image)
 
+        self._export_button = QPushButton("Export...")
+        self._export_button.clicked.connect(self.export_data)
+
         # Row 1: Zoom controls + Fit + 1:1 buttons
         zoom_row = QHBoxLayout()
         zoom_row.addWidget(self._zoom_label)
@@ -129,10 +134,11 @@ class ImagePanel(QWidget):
         zoom_row.addStretch()
         control_layout.addLayout(zoom_row)
 
-        # Row 2: Save button only
+        # Row 2: Save + Export buttons
         save_row = QHBoxLayout()
         save_row.addStretch()
         save_row.addWidget(self._save_button)
+        save_row.addWidget(self._export_button)
         save_row.addStretch()
         control_layout.addLayout(save_row)
 
@@ -413,6 +419,28 @@ class ImagePanel(QWidget):
         """Clear the displayed image."""
         self._image = None
         self._update_display()
+
+    def set_export_callback(self, callback):
+        """Set a callback for the export button.
+
+        The callback should accept no arguments and return None on success.
+        """
+        self._export_callback = callback
+
+    def export_data(self):
+        """Export depth/disparity data. Calls the registered callback if set."""
+        if self._export_callback is not None:
+            try:
+                self._export_callback()
+            except Exception as e:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(self, "Error", f"Failed to export data: {str(e)}")
+
+    def get_image_shape(self):
+        """Return the shape of the current image (height, width)."""
+        if self._image is not None:
+            return self._image.shape[:2]
+        return (0, 0)
 
 
 class ThumbnailPanel(QWidget):
