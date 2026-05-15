@@ -453,15 +453,15 @@ class DepthEstimator:
         """
         Convert disparity to depth map.
         
-        Depth = (baseline * focal_length) / disparity
+        Depth (meters) = (baseline_meters * focal_length_pixels) / disparity_pixels
         
         Args:
             disparity: Disparity map (uses cached if None)
-            baseline: Camera baseline in meters (uses instance value if None)
-            focal_length: Focal length in pixels (uses instance value if None)
+            baseline: Camera baseline in METERS (uses instance value if None)
+            focal_length: Focal length in PIXELS (uses instance value if None)
         
         Returns:
-            Depth map in meters or None on failure
+            Depth map in METERS or None on failure
         """
         disp = disparity if disparity is not None else self.disparity
         

@@ -35,13 +35,14 @@ This toolbox helps you:
 - OpenCV 4.10.0 or higher (required for NumPy 2.x compatibility)
 - NumPy 2.0.0 or higher
 - Pillow 8.0.0 or higher
-- tkinter (standard library, may need separate installation on Linux)
+- PySide6 (GUI framework)
 
 ### Optional (for RAFT-Stereo deep learning support)
 
 - PyTorch 1.7.0 or higher
 - Torchvision 0.8.1 or higher
 - gdown (for model download)
+- scipy (for MATLAB .mat export support)
 - Pretrained RAFT-Stereo model (~45MB)
 - GPU recommended for faster inference (CUDA support)
 
@@ -52,7 +53,7 @@ This toolbox helps you:
 1. **Install system dependencies:**
    ```bash
    sudo apt update
-   sudo apt install python3-venv python3-tk
+   sudo apt install python3-venv
    ```
 
 2. **Clone the repository:**
@@ -158,7 +159,7 @@ This toolbox helps you:
 
 ### macOS
 
-1. **Install Python 3.11 and tkinter:**
+1. **Install Python 3.11:**
    ```bash
    brew install python@3.11
    ```
@@ -411,9 +412,10 @@ stereo_rectify_and_depth_toolbox/
 │   ├── depth.py         # Depth estimation (BM, SGBM & RAFT-Stereo)
 │   └── RAFT-Stereo/     # RAFT-Stereo deep learning model
 ├── gui/
-│   ├── main_window.py   # Main application window
-│   ├── param_panel.py   # Camera parameter inputs
-│   └── image_panel.py   # Image display with zoom/pan
+│   ├── qt_main_window.py   # Main Qt application window (PySide6)
+│   ├── qt_param_panel.py   # Camera parameter panel (PySide6)
+│   ├── qt_image_panel.py   # Image display with zoom/pan (PySide6)
+│   └── theme.py            # Qt theming (dark/light mode support)
 ├── scripts/
 │   └── download_raft_models.py  # Model download utility
 ├── tests/
@@ -436,19 +438,6 @@ The included example datasets use images from the **Tsukuba Stereo Dataset** pro
 For more datasets and benchmark evaluations, visit the CVLab Tsukuba website.
 
 ## Troubleshooting
-
-### Linux: tkinter not found
-```bash
-sudo apt install python3-tk
-```
-
-### Windows: tkinter not found
-Reinstall Python and ensure "tcl/tk and IDLE" is checked during installation.
-
-### macOS: tkinter not found
-```bash
-brew install python-tk
-```
 
 ### RAFT-Stereo: PyTorch not installed
 If you select RAFT algorithm and see an error about PyTorch:

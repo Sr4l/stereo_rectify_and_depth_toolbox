@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
-"""
-Stereo Camera Calibration & Depth Toolbox
+"""Stereo Camera Calibration & Depth Toolbox - Main Entry Point
 
-A GUI application for interactive stereo camera calibration,
-rectification, and depth estimation using OpenCV.
+This application provides stereo camera rectification and depth estimation
+using three algorithms: StereoBM, StereoSGBM, and RAFT-Stereo.
 
 Usage:
     python main.py
-
-Requirements:
-    opencv-python>=4.5.0
-    numpy>=1.19.0
-    Pillow>=8.0.0
 """
 
-from gui.main_window import StereoCalibrationGUI
+import sys
 
 
 def main():
-    """Main entry point for the application."""
-    app = StereoCalibrationGUI()
-    app.run()
+    """Main entry point."""
+    from gui.qt_main_window import StereoCalibrationGUI
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    app.setStyle("Fusion")  # Use Fusion style for consistent dark appearance
+    app.setApplicationName("Stereo Camera Calibration & Depth Toolbox")
+
+    window = StereoCalibrationGUI()
+    window.show()
+
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':
