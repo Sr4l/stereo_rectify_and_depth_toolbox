@@ -115,14 +115,34 @@ class ExportDialog(QDialog):
 
         layout.addLayout(btn_layout)
 
-    def _default_filename(self) -> str:
-        """Generate default filename based on format and type."""
+    def _default_filename(self, format_name: str = None) -> str:
+        """Generate default filename based on format and type.
+
+        Parameters
+        ----------
+        format_name : str, optional
+            File format name. Defaults to self._selected_format.
+
+        Returns
+        -------
+        str
+            Default filename with extension.
+        """
         type_suffix = "depth" if self._depth_radio.isChecked() else "disparity"
-        return f"exported_{type_suffix}"
+        if format_name is None:
+            format_name = self._selected_format
+        ext_map = {
+            "npy": ".npy",
+            "mat": ".mat",
+            "tiff": ".tiff",
+            "csv": ".csv",
+        }
+        ext = ext_map.get(format_name, ".npy")
+        return f"exported_{type_suffix}{ext}"
 
     def _on_type_changed(self, checked: bool):
         """Update filename when export type changes."""
-        self._name_edit.setText(self._default_filename())
+        self._name_edit.setText(self._default_filename(self._selected_format))
 
     def _browse_filename(self):
         """Open file browser to set export path."""
@@ -155,7 +175,7 @@ class ExportDialog(QDialog):
             self._name_edit.setText(file_path)
 
     def _on_format_changed(self, format_name: str):
-        """Update description when format changes."""
+        """Update description and filename extension when format changes."""
         self._selected_format = format_name.lower()
         descriptions = {
             "npy": "NumPy binary format. Fast and preserves full precision.",
@@ -165,6 +185,7 @@ class ExportDialog(QDialog):
                    f"{self._width} columns per row.",
         }
         self._format_desc.setText(descriptions.get(self._selected_format, ""))
+        self._name_edit.setText(self._default_filename(self._selected_format))
 
     def _on_export(self):
         """Validate inputs and accept dialog."""
