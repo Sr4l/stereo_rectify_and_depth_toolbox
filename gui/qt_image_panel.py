@@ -132,15 +132,11 @@ class ImagePanel(QWidget):
         zoom_row.addWidget(self._fit_button)
         zoom_row.addWidget(self._one_to_one_button)
         zoom_row.addStretch()
+        zoom_row.addWidget(self._save_button)
+        zoom_row.addWidget(self._export_button)
+        zoom_row.addStretch()
+        zoom_row.addStretch()
         control_layout.addLayout(zoom_row)
-
-        # Row 2: Save + Export buttons
-        save_row = QHBoxLayout()
-        save_row.addStretch()
-        save_row.addWidget(self._save_button)
-        save_row.addWidget(self._export_button)
-        save_row.addStretch()
-        control_layout.addLayout(save_row)
 
     def eventFilter(self, obj, event):
         """Event filter for QGraphicsView viewport to handle mouse events."""
