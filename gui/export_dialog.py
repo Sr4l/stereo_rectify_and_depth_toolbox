@@ -82,15 +82,6 @@ class ExportDialog(QDialog):
         self._format_desc.setStyleSheet("font-size: 9pt; color: gray;")
         layout.addWidget(self._format_desc)
 
-        # CSV columns info (only shown for CSV)
-        self._csv_info = QLabel(
-            f"CSV will have {self._width} columns (one per pixel column)."
-        )
-        self._csv_info.setWordWrap(True)
-        self._csv_info.setStyleSheet("font-size: 9pt; color: #aa8800;")
-        self._csv_info.setVisible(False)
-        layout.addWidget(self._csv_info)
-
         # File name group
         file_group = QGroupBox("File Name")
         file_layout = QHBoxLayout(file_group)
