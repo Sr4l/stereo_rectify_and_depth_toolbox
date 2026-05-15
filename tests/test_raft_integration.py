@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 """Test RAFT-Stereo integration."""
-
-import sys
-
-# Add venv to path
-sys.path.insert(0, '/home/sr4l/git/_github/stereo_rectify_and_depth_toolbox/venv/lib/python3.14/site-packages')
-
 from core.depth import DepthEstimator, TORCH_AVAILABLE
 import numpy as np
 
