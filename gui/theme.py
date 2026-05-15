@@ -4,7 +4,7 @@ Provides theme-aware stylesheet definitions, a global apply function,
 and system theme detection (Qt 6.5+ QStyleHints with palette fallback).
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 ThemeName = Literal["dark", "light"]
 

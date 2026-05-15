@@ -14,21 +14,21 @@ def test_gui_imports():
     print("Testing GUI imports...")
 
     try:
-        from gui.qt_param_panel import CameraParamPanel
+        from gui.qt_param_panel import CameraParamPanel  # noqa: F401
         print("  ✓ CameraParamPanel imported")
     except Exception as e:
         print(f"  ✗ CameraParamPanel import failed: {e}")
         return False
 
     try:
-        from gui.qt_image_panel import ImagePanel, ThumbnailPanel
+        from gui.qt_image_panel import ImagePanel, ThumbnailPanel  # noqa: F401
         print("  ✓ ImagePanel and ThumbnailPanel imported")
     except Exception as e:
         print(f"  ✗ ImagePanel/ThumbnailPanel import failed: {e}")
         return False
 
     try:
-        from gui.qt_main_window import StereoCalibrationGUI
+        from gui.qt_main_window import StereoCalibrationGUI  # noqa: F401
         print("  ✓ StereoCalibrationGUI imported")
     except Exception as e:
         print(f"  ✗ StereoCalibrationGUI import failed: {e}")

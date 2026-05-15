@@ -1,14 +1,11 @@
 """Export dialog for depth/disparity data."""
 
-import os
-from typing import Optional
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGroupBox,
     QLabel, QRadioButton, QLineEdit, QPushButton,
     QComboBox, QFileDialog, QMessageBox
 )
-from PySide6.QtCore import Qt
 
 
 class ExportDialog(QDialog):

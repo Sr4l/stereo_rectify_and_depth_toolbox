@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Tuple, Dict
 from dataclasses import dataclass
 
 
@@ -267,7 +267,7 @@ class DepthEstimator:
         model.eval()
         self.raft_model = model
         self.raft_model_path = model_path
-        print(f"RAFT-Stereo model loaded successfully")
+        print("RAFT-Stereo model loaded successfully")
     
     def compute_disparity(
         self, 

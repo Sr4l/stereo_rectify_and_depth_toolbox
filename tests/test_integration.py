@@ -103,12 +103,12 @@ def test_complete_workflow_all_examples():
         rect_left, rect_right = rectifier.rectify()
         
         depth_estimator = DepthEstimator()
-        disparity = depth_estimator.compute_disparity(rect_left, rect_right)
+        depth_estimator.compute_disparity(rect_left, rect_right)
         stats = depth_estimator.get_disparity_stats()
         
         results[pair_name] = stats
     
-    print(f"  ✓ All examples processed successfully")
+    print("  ✓ All examples processed successfully")
     for name, stats in results.items():
         print(f"    {name:12s} - disparity: min={stats['min']:6.2f}, max={stats['max']:6.2f}, mean={stats['mean']:6.2f}")
     
@@ -161,11 +161,11 @@ def test_bm_parameters_sensitivity():
         estimator = DepthEstimator()
         estimator.set_bm_params(**params)
         
-        disparity = estimator.compute_disparity(rect_left, rect_right)
+        estimator.compute_disparity(rect_left, rect_right)
         stats = estimator.get_disparity_stats()
         results.append((params, stats))
     
-    print(f"  ✓ BM parameter sensitivity test passed")
+    print("  ✓ BM parameter sensitivity test passed")
     for params, stats in results:
         print(f"    numDisp={params['numDisparities']:2d}, blockSize={params['blockSize']:2d} -> "
               f"max disparity: {stats['max']:6.2f}")
@@ -337,7 +337,7 @@ def test_depth_range():
     estimator.set_bm_params(numDisparities=32, blockSize=15)
     estimator.set_camera_params(baseline=0.03, focal_length=600)
     
-    disparity = estimator.compute_disparity(rect_left, rect_right)
+    estimator.compute_disparity(rect_left, rect_right)
     depth = estimator.compute_depth()
     
     assert depth is not None, "Depth computation failed"
@@ -359,7 +359,6 @@ def run_all_integration_tests():
     print("=" * 60)
     print()
     
-    from core.rectifier import StereoRectifier
     
     tests = [
         test_complete_workflow_sphere,

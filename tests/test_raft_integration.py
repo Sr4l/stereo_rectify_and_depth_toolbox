@@ -2,7 +2,6 @@
 """Test RAFT-Stereo integration."""
 
 import sys
-import os
 
 # Add venv to path
 sys.path.insert(0, '/home/sr4l/git/_github/stereo_rectify_and_depth_toolbox/venv/lib/python3.14/site-packages')
@@ -60,7 +59,7 @@ def test_raft_disparity_computation():
     right = np.random.randint(0, 255, (256, 256, 3), dtype=np.uint8)
     
     try:
-        disparity = estimator.compute_disparity_raft(
+        estimator.compute_disparity_raft(
             left, right,
             model_path='models/nonexistent.pth'
         )

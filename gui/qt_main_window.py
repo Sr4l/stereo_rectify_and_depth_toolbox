@@ -9,8 +9,7 @@ from typing import Optional
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QGroupBox, QLabel, QPushButton, QComboBox, QCheckBox,
-    QSlider, QFileDialog, QMessageBox, QStatusBar, QMenu,
-    QScrollArea, QGridLayout, QFormLayout, QFrame, QApplication,
+    QSlider, QFileDialog, QMessageBox, QScrollArea, QApplication,
     QDialog, QRadioButton, QLineEdit
 )
 
@@ -35,7 +34,7 @@ def _ensure_image_extension(file_path: str) -> str:
     if ext in _VALID_IMAGE_EXTENSIONS:
         return file_path
     return f"{file_path}.png"
-from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSettings
+from PySide6.QtCore import Qt, QTimer, QSettings
 from PySide6.QtGui import QAction, QKeySequence
 
 from .qt_image_panel import ImagePanel

@@ -1,7 +1,5 @@
-import sys
 import numpy as np
 import cv2
-from PIL import Image
 from typing import Optional
 
 from PySide6.QtWidgets import (
@@ -9,8 +7,8 @@ from PySide6.QtWidgets import (
     QGraphicsScene, QGraphicsPixmapItem, QLabel, QSlider, QPushButton,
     QMenu, QApplication, QGraphicsTextItem
 )
-from PySide6.QtCore import Qt, QRectF, QPointF, QPoint
-from PySide6.QtGui import QImage, QPixmap, QCursor, QFont, QColor, QPainter
+from PySide6.QtCore import Qt, QPoint
+from PySide6.QtGui import QImage, QPixmap, QFont, QColor, QPainter
 
 
 def numpy_to_qimage(arr: np.ndarray) -> QImage:
@@ -68,7 +66,6 @@ class ImagePanel(QWidget):
         self._create_widgets()
         # No per-widget stylesheet needed — global theme handles all styling
 
-        group_box = QGroupBox(title)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
 
